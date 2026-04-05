@@ -706,24 +706,27 @@ export default function Index() {
                       </div>
                     </div>
 
-                    {/* Song recommendation — 网易云音乐嵌入播放器 */}
-                    <div className="mt-3">
-                      <p className="text-xs text-amber-600 mb-2 flex items-center gap-1.5">
-                        <span>🎵</span> 今日适宜听 · {fortune.song.title} — {fortune.song.artist}
-                      </p>
-                      <div className="rounded-xl overflow-hidden border border-stone-200/60">
-                        <iframe
-                          frameBorder="0"
-                          marginWidth={0}
-                          marginHeight={0}
-                          width="330"
-                          height="86"
-                          src={`https://music.163.com/outchain/player?type=2&id=${fortune.song.songId}&auto=0&height=66`}
-                          allow="autoplay; encrypted-media"
-                          style={{ maxWidth: '100%' }}
-                        ></iframe>
+                    {/* Song recommendation */}
+                    <a
+                      href={`https://music.163.com/song?id=${fortune.song.songId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 block bg-gradient-to-r from-stone-50 to-amber-50/50 border border-stone-200/60 rounded-xl p-3 hover:shadow-md transition-all duration-300 no-underline"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shrink-0 shadow-sm">
+                          <span className="text-white text-lg">♪</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{fortune.song.title}</p>
+                          <p className="text-xs text-gray-400">{fortune.song.artist}</p>
+                        </div>
+                        <div className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-red-500 text-white font-medium shadow-sm">
+                          播放 ▶
+                        </div>
                       </div>
-                    </div>
+                      <p className="text-[10px] text-gray-300 mt-2 text-right">点击前往网易云音乐收听</p>
+                    </a>
                   </div>
                 </div>
               ))}
