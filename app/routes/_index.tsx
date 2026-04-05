@@ -42,8 +42,8 @@ interface UserProfile {
   createdAt: number;
 }
 
-const PROFILES_KEY = 'huaxin_profiles';
-const ACTIVE_PROFILE_KEY = 'huaxin_active';
+const PROFILES_KEY = 'zhiming_profiles';
+const ACTIVE_PROFILE_KEY = 'zhiming_active';
 
 function getWeatherEmoji(icon: string): string {
   const code = parseInt(icon);
@@ -305,7 +305,7 @@ export default function Index() {
     setProfiles(loadProfiles());
     // Migrate old single-user data
     try {
-      const old = localStorage.getItem('huaxin_user');
+      const old = localStorage.getItem('zhiming_user');
       if (old) {
         const parsed = JSON.parse(old) as { name: string; birthday: string; gender: string; birthHour: string };
         if (parsed.name && parsed.birthday) {
@@ -323,7 +323,7 @@ export default function Index() {
             saveProfiles(updated);
             setProfiles(updated);
           }
-          localStorage.removeItem('huaxin_user');
+          localStorage.removeItem('zhiming_user');
         }
       }
     } catch { /* ignore */ }
@@ -452,11 +452,6 @@ export default function Index() {
     window.scrollTo(0, 0);
   };
 
-  const ratingStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < rating ? 'star-filled' : 'star-empty'}>★</span>
-    ));
-
   return (
     <div className={`min-h-screen ${bg.className} font-sans relative`}>
       {/* Background image layer */}
@@ -470,19 +465,19 @@ export default function Index() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             {(view === 'result' || view === 'add' || view === 'edit') && (
-              <button onClick={goHome} className="text-rose-400 hover:text-rose-600 transition-colors mr-1 text-sm">
+              <button onClick={goHome} className="text-amber-500 hover:text-amber-700 transition-colors mr-1 text-sm">
                 ← 返回
               </button>
             )}
             <span className="text-2xl">{getSeasonEmoji()}</span>
-            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">花信</h1>
+            <h1 className="font-serif-cn text-xl font-bold text-amber-700 tracking-wide">知命</h1>
             {view === 'result' && activeProfile && (
               <span className="text-sm text-gray-500 font-serif-cn ml-1">· {activeProfile.name}</span>
             )}
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
-            <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
+            <p className="text-xs text-amber-600 font-serif-cn">{getLunarDateText()}</p>
           </div>
         </div>
       </header>
@@ -496,10 +491,10 @@ export default function Index() {
               /* Welcome screen when no profiles */
               <div className="text-center py-8 space-y-8">
                 <div className="space-y-4">
-                  <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">花信</h2>
-                  <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Bloom Signal</p>
-                  <div className="flex items-center justify-center gap-2 text-rose-300 text-sm">
-                    <span>✿</span><span>✿</span><span>✿</span>
+                  <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">知命</h2>
+                  <p className="font-serif-cn text-lg text-amber-600 tracking-widest">不知命，无以为君子</p>
+                  <div className="flex items-center justify-center gap-2 text-amber-400 text-sm">
+                    <span>✦</span><span>✦</span><span>✦</span>
                   </div>
                   <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
                     融合五行生肖、天干地支、气象节令，为您定制今日专属运势、幸运色与饮食养生指南
@@ -523,7 +518,7 @@ export default function Index() {
                 <div className="animate-fade-in-delay-2">
                   <button
                     onClick={() => setView('add')}
-                    className="btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
+                    className="btn-pill bg-gradient-to-r from-amber-500 to-amber-400 text-white text-sm"
                   >
                     ＋ 添加成员，开始探索 ✦
                   </button>
@@ -545,7 +540,7 @@ export default function Index() {
                       <button
                         key={profile.id}
                         onClick={() => handleSelectProfile(profile)}
-                        className="glass rounded-2xl p-4 text-center hover:scale-105 hover:shadow-lg hover:shadow-rose-100/40 transition-all duration-300 relative group"
+                        className="glass rounded-2xl p-4 text-center hover:scale-105 hover:shadow-lg hover:shadow-amber-100/40 transition-all duration-300 relative group"
                       >
                         {/* Delete button */}
                         <span
@@ -568,10 +563,10 @@ export default function Index() {
                   {/* Add new profile card */}
                   <button
                     onClick={() => setView('add')}
-                    className="rounded-2xl p-4 text-center border-2 border-dashed border-rose-200/60 hover:border-rose-400 hover:bg-rose-50/30 transition-all duration-300 flex flex-col items-center justify-center min-h-[160px]"
+                    className="rounded-2xl p-4 text-center border-2 border-dashed border-amber-200/60 hover:border-amber-500 hover:bg-amber-50/30 transition-all duration-300 flex flex-col items-center justify-center min-h-[160px]"
                   >
-                    <div className="text-3xl text-rose-300 mb-2">＋</div>
-                    <p className="text-sm text-rose-400 font-medium">添加新成员</p>
+                    <div className="text-3xl text-amber-400 mb-2">＋</div>
+                    <p className="text-sm text-amber-500 font-medium">添加新成员</p>
                   </button>
                 </div>
               </>
@@ -584,13 +579,13 @@ export default function Index() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm">
             <div className="text-center space-y-4 animate-fade-in">
               <div className="text-5xl animate-pulse">{getSeasonEmoji()}</div>
-              <p className="font-serif-cn text-lg text-rose-500 tracking-wide">
-                花信正在为 {activeProfile?.name} 解读今日运势...
+              <p className="font-serif-cn text-lg text-amber-600 tracking-wide">
+                知命正在为 {activeProfile?.name} 解读今日运势...
               </p>
               <div className="flex items-center justify-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-300 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-300 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
               {geoError && <p className="text-xs text-amber-600">{geoError}</p>}
             </div>
@@ -599,10 +594,10 @@ export default function Index() {
 
         {/* Add / Edit profile form */}
         {(view === 'add' || view === 'edit') && (
-          <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in">
+          <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30 animate-fade-in">
             <div className="px-5 py-4 border-b border-white/30">
               <h2 className="font-serif-cn font-semibold text-gray-700 flex items-center gap-2">
-                <span className="text-rose-400">❀</span>
+                <span className="text-amber-500">☰</span>
                 {view === 'edit' ? '修改信息' : '添加成员'}
               </h2>
             </div>
@@ -620,8 +615,8 @@ export default function Index() {
           <div className="space-y-5 animate-fade-in">
 
             {/* Profile header */}
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
-              <div className="bg-gradient-to-r from-rose-400/20 to-pink-300/20 px-5 py-5">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30">
+              <div className="bg-gradient-to-r from-amber-500/20 to-yellow-300/20 px-5 py-5">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-white/70 border-2 border-white shadow-md flex items-center justify-center text-3xl">
                     {getZodiacEmoji(actionData.reading.zodiac)}
@@ -631,7 +626,7 @@ export default function Index() {
                     <p className="text-xs text-gray-500 mt-0.5">{actionData.reading.baziSummary}</p>
                     <div className="flex gap-2 mt-2 flex-wrap">
                       {[
-                        { label: actionData.reading.zodiac, color: 'bg-rose-100/80 text-rose-600 border-rose-200/60' },
+                        { label: actionData.reading.zodiac, color: 'bg-amber-100/80 text-amber-600 border-amber-200/60' },
                         { label: `${actionData.reading.element}`, color: 'bg-emerald-100/80 text-emerald-600 border-emerald-200/60' },
                         { label: actionData.reading.yinYang, color: 'bg-amber-100/80 text-amber-600 border-amber-200/60' },
                       ].map((tag) => (
@@ -640,17 +635,18 @@ export default function Index() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <p className="font-serif-cn text-3xl font-bold text-rose-500">{actionData.reading.dayRating}<span className="text-sm text-gray-400">/5</span></p>
-                    <div className="text-base mt-0.5">{ratingStars(actionData.reading.dayRating)}</div>
+                    <div className="w-14 h-14 rounded-full bg-amber-500/15 border-2 border-amber-400/60 flex items-center justify-center">
+                      <p className="font-serif-cn text-2xl font-bold text-amber-600">{actionData.reading.dayRating}<span className="text-xs text-amber-400">/5</span></p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Day summary */}
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30 animate-fade-in-delay">
               <div className="px-5 py-3 border-b border-white/30">
-                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日概览</h3>
+                <h3 className="text-xs font-semibold text-amber-500 tracking-widest">✦ 今日概览</h3>
               </div>
               <p className="px-5 py-4 text-sm text-gray-700 leading-relaxed">{actionData.reading.daySummary}</p>
             </div>
@@ -666,25 +662,21 @@ export default function Index() {
               {actionData.reading.fortunes.map((fortune, i) => (
                 <div
                   key={fortune.name}
-                  className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in"
+                  className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30 animate-fade-in"
                   style={{ animationDelay: `${i * 120}ms` }}
                 >
                   <div className="px-5 py-4">
-                    {/* Header row: emoji + name + stars */}
+                    {/* Header row: emoji + name */}
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-serif-cn font-bold text-gray-800 flex items-center gap-2">
                         <span className="text-xl">{fortune.emoji}</span>
                         {fortune.name}
                       </h4>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base">{ratingStars(fortune.rating)}</span>
-                        <span className="text-xs text-gray-400 font-medium">{fortune.rating}/5</span>
-                      </div>
                     </div>
 
                     {/* Keyword badge */}
                     <div className="mb-3">
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100/80 text-rose-500 border border-rose-200/60 font-medium">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100/80 text-amber-600 border border-amber-200/60 font-medium">
                         关键词：{fortune.keyword}
                       </span>
                     </div>
@@ -693,9 +685,9 @@ export default function Index() {
                     <p className="text-sm text-gray-700 leading-relaxed mb-3">{fortune.summary}</p>
 
                     {/* Advice box */}
-                    <div className="bg-rose-50/60 border border-rose-200/40 rounded-xl p-3 flex items-start gap-2 mb-3">
+                    <div className="bg-amber-50/60 border border-amber-200/40 rounded-xl p-3 flex items-start gap-2 mb-3">
                       <span className="text-sm">💡</span>
-                      <p className="text-xs text-rose-600">{fortune.advice}</p>
+                      <p className="text-xs text-amber-700">{fortune.advice}</p>
                     </div>
 
                     {/* 宜/忌 badges */}
@@ -713,6 +705,30 @@ export default function Index() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Song recommendation */}
+                    <div className="mt-3 bg-violet-50/60 border border-violet-200/40 rounded-xl p-3 flex items-center gap-3">
+                      <span className="text-lg">🎵</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-violet-500 mb-0.5">今日适宜听</p>
+                        <a
+                          href={fortune.song.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-violet-700 hover:text-violet-900 underline decoration-violet-300 underline-offset-2 truncate block"
+                        >
+                          {fortune.song.title} — {fortune.song.artist}
+                        </a>
+                      </div>
+                      <a
+                        href={fortune.song.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-violet-100 text-violet-600 border border-violet-200/60 hover:bg-violet-200 transition-colors"
+                      >
+                        去听听 →
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -721,9 +737,9 @@ export default function Index() {
             <div className="divider-flower" />
 
             {/* Lucky colors */}
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30 animate-fade-in-delay">
               <div className="px-5 py-3 border-b border-white/30">
-                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 幸运色彩</h3>
+                <h3 className="text-xs font-semibold text-amber-500 tracking-widest">✦ 幸运色彩</h3>
               </div>
               <div className="p-5 space-y-4">
                 <div className="flex justify-center gap-6">
@@ -738,9 +754,9 @@ export default function Index() {
                     </div>
                   ))}
                 </div>
-                <div className="bg-rose-50/60 border border-rose-200/40 rounded-xl p-3 flex items-start gap-2">
+                <div className="bg-amber-50/60 border border-amber-200/40 rounded-xl p-3 flex items-start gap-2">
                   <span className="text-sm">💡</span>
-                  <p className="text-xs text-rose-600"><span className="font-semibold">{actionData.reading.luckyColor.name}：</span>{actionData.reading.luckyColor.reason}</p>
+                  <p className="text-xs text-amber-700"><span className="font-semibold">{actionData.reading.luckyColor.name}：</span>{actionData.reading.luckyColor.reason}</p>
                 </div>
               </div>
             </div>
@@ -748,13 +764,13 @@ export default function Index() {
             <div className="divider-flower" />
 
             {/* Foods */}
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay-2">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30 animate-fade-in-delay-2">
               <div className="px-5 py-3 border-b border-white/30">
-                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日宜吃</h3>
+                <h3 className="text-xs font-semibold text-amber-500 tracking-widest">✦ 今日宜吃</h3>
               </div>
               <div className="p-4 space-y-2">
                 {actionData.reading.foods.map((food, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50/40 transition-colors">
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50/40 transition-colors">
                     <span className="text-2xl w-10 text-center">{food.emoji}</span>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-700">{food.name}</p>
@@ -767,9 +783,9 @@ export default function Index() {
             </div>
 
             {/* Avoid foods */}
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-amber-100/30">
               <div className="px-5 py-3 border-b border-white/30">
-                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日忌吃</h3>
+                <h3 className="text-xs font-semibold text-amber-500 tracking-widest">✦ 今日忌吃</h3>
               </div>
               <div className="p-4 space-y-2">
                 {actionData.reading.avoidFoods.map((food, i) => (
@@ -789,13 +805,13 @@ export default function Index() {
 
             {/* Lucky number & direction */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-rose-100/30">
+              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-amber-100/30">
                 <p className="text-xs text-gray-500 mb-2">幸运数字</p>
-                <p className="font-serif-cn text-4xl font-bold text-rose-500">{actionData.reading.luckyNumber}</p>
+                <p className="font-serif-cn text-4xl font-bold text-amber-600">{actionData.reading.luckyNumber}</p>
               </div>
-              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-rose-100/30">
+              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-amber-100/30">
                 <p className="text-xs text-gray-500 mb-2">幸运方位</p>
-                <p className="font-serif-cn text-4xl font-bold text-rose-500">{actionData.reading.luckyDirection}</p>
+                <p className="font-serif-cn text-4xl font-bold text-amber-600">{actionData.reading.luckyDirection}</p>
               </div>
             </div>
 
@@ -810,7 +826,7 @@ export default function Index() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setView('edit')}
-                  className="flex-1 glass rounded-full py-3 text-rose-500 text-sm font-medium hover:bg-white/80 transition-all"
+                  className="flex-1 glass rounded-full py-3 text-amber-600 text-sm font-medium hover:bg-white/80 transition-all"
                 >
                   修改信息
                 </button>
@@ -829,10 +845,10 @@ export default function Index() {
       </main>
 
       <footer className="relative z-10 text-center py-8 text-xs mt-8">
-        <div className="flex items-center justify-center gap-2 text-rose-300 text-xs mb-3">
-          <span>❀</span><span className="tracking-widest">· · ·</span><span>❀</span>
+        <div className="flex items-center justify-center gap-2 text-amber-400 text-xs mb-3">
+          <span>☰</span><span className="tracking-widest">· · ·</span><span>☰</span>
         </div>
-        <p className="text-gray-500">花信 · 仅供娱乐参考</p>
+        <p className="text-gray-500">知命 · 仅供娱乐参考</p>
         <p className="mt-1 text-gray-400">五行理论 & 和风天气 驱动</p>
       </footer>
     </div>
@@ -866,41 +882,41 @@ function ProfileForm({
   return (
     <form onSubmit={handleSubmit} className="p-5 space-y-5">
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-600">姓名 <span className="text-rose-400">*</span></label>
+        <label className="block text-sm font-medium text-gray-600">姓名 <span className="text-amber-500">*</span></label>
         <input
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="请输入姓名"
           required
-          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-white/60 transition-all"
+          className="input-elegant w-full border border-amber-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-white/60 transition-all"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-600">出生日期 <span className="text-rose-400">*</span></label>
+        <label className="block text-sm font-medium text-gray-600">出生日期 <span className="text-amber-500">*</span></label>
         <input
           type="date"
           value={birthday}
           onChange={e => setBirthday(e.target.value)}
           required
-          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
+          className="input-elegant w-full border border-amber-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-600">性别 <span className="text-rose-400">*</span></label>
+        <label className="block text-sm font-medium text-gray-600">性别 <span className="text-amber-500">*</span></label>
         <div className="flex gap-3">
           {(['男', '女'] as const).map((g) => (
             <label key={g} className={`flex items-center gap-2 cursor-pointer flex-1 border rounded-xl px-4 py-2.5 transition-colors
-              ${gender === g ? 'border-rose-400 bg-rose-50/80' : 'border-rose-200/60 bg-white/60 hover:bg-rose-50/60'}`}>
+              ${gender === g ? 'border-amber-500 bg-amber-50/80' : 'border-amber-200/60 bg-white/60 hover:bg-amber-50/60'}`}>
               <input
                 type="radio"
                 name="gender"
                 value={g}
                 checked={gender === g}
                 onChange={() => setGender(g)}
-                className="accent-rose-500"
+                className="accent-amber-600"
               />
               <span className="text-sm text-gray-700 font-medium">{g === '男' ? '♂ 男' : '♀ 女'}</span>
             </label>
@@ -913,7 +929,7 @@ function ProfileForm({
         <select
           value={birthHour}
           onChange={e => setBirthHour(parseInt(e.target.value))}
-          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
+          className="input-elegant w-full border border-amber-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
         >
           {HOUR_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.symbol} {opt.label}</option>
@@ -932,7 +948,7 @@ function ProfileForm({
         </button>
         <button
           type="submit"
-          className="flex-1 btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
+          className="flex-1 btn-pill bg-gradient-to-r from-amber-500 to-amber-400 text-white text-sm"
         >
           {submitLabel}
         </button>

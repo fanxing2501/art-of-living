@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════
-   花信 Bloom Signal — Feminine Elegant Theme
+   知命 Zhī Mìng — Traditional Chinese Fortune Theme
    ═══════════════════════════════════════════ */
 
 /* ── Seasonal background gradients ── */
 .bg-spring {
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 30%, #c8e6c9 70%, #e8f5e9 100%);
+  background: linear-gradient(135deg, #f5f0e1 0%, #e8e0c8 30%, #c8d8b0 70%, #e8edd8 100%);
 }
 .bg-summer {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffccbc 30%, #b3e5fc 70%, #e1f5fe 100%);
+  background: linear-gradient(135deg, #faf5e4 0%, #f0dca0 30%, #c8dce8 70%, #e8f0f5 100%);
 }
 .bg-autumn {
-  background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 30%, #d7ccc8 70%, #efebe9 100%);
+  background: linear-gradient(135deg, #f5edd8 0%, #d4a840 30%, #b8a080 70%, #e8ddd0 100%);
 }
 .bg-winter {
-  background: linear-gradient(135deg, #ede7f6 0%, #d1c4e9 30%, #e8eaf6 70%, #f3e5f5 100%);
+  background: linear-gradient(135deg, #e8eaef 0%, #b0b8c8 30%, #c8cdd8 70%, #dde0e8 100%);
 }
 
 /* ── Background image overlay ── */
@@ -31,28 +31,28 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 252, 245, 0.55);
   backdrop-filter: blur(2px);
 }
 
 /* ── Glassmorphism ── */
 .glass {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 253, 248, 0.65);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 253, 248, 0.5);
 }
 .glass-strong {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 253, 248, 0.82);
   backdrop-filter: blur(20px) saturate(200%);
   -webkit-backdrop-filter: blur(20px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 253, 248, 0.6);
 }
 .glass-header {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 253, 248, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 253, 248, 0.4);
 }
 
 /* ── Fade-in animation ── */
@@ -83,10 +83,10 @@
 
 /* ── Decorative divider ── */
 .divider-flower::before {
-  content: '✿ ✿ ✿';
+  content: '— ✦ —';
   display: block;
   text-align: center;
-  color: #f9a8d4;
+  color: #d97706;
   letter-spacing: 0.5em;
   font-size: 0.75rem;
   padding: 0.75rem 0;
@@ -99,11 +99,11 @@
   padding: 0.75rem 2rem;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.25);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25);
 }
 .btn-pill:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.35);
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.35);
 }
 
 /* ── Serif heading font ── */
@@ -114,15 +114,6 @@
 /* ── Soft input focus ── */
 .input-elegant:focus {
   outline: none;
-  border-color: #f9a8d4;
-  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.2);
-}
-
-/* ── Star rating colors ── */
-.star-filled {
-  color: #f59e0b;
-  filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4));
-}
-.star-empty {
-  color: #e5e7eb;
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2);
 }

@@ -32,12 +32,13 @@ export interface FoodInfo {
 export interface FortuneCategory {
   name: string;
   emoji: string;
-  rating: number; // 1-5
-  summary: string; // 2-3 sentence description
-  advice: string; // actionable advice
-  goodFor: string[]; // 宜 (things to do)
-  badFor: string[]; // 忌 (things to avoid)
-  keyword: string; // 今日关键词
+  rating: number; // 1-5 (internal use for content selection)
+  summary: string;
+  advice: string;
+  goodFor: string[];
+  badFor: string[];
+  keyword: string;
+  song: { title: string; artist: string; url: string };
 }
 
 export interface DailyReading {
@@ -433,10 +434,62 @@ export function generateDailyReading(params: ReadingParams): DailyReading {
     return result;
   }
 
+  // 歌曲推荐池 — 网易云音乐链接
+  type Song = { title: string; artist: string; url: string };
+  const loveSongs: Song[] = [
+    { title: '小幸运', artist: '田馥甄', url: 'https://music.163.com/#/song?id=461544312' },
+    { title: '遇见', artist: '孙燕姿', url: 'https://music.163.com/#/song?id=254574' },
+    { title: '喜欢你', artist: '邓紫棋', url: 'https://music.163.com/#/song?id=29567189' },
+    { title: '告白气球', artist: '周杰伦', url: 'https://music.163.com/#/song?id=421423806' },
+    { title: '最浪漫的事', artist: '赵咏华', url: 'https://music.163.com/#/song?id=276314' },
+    { title: '我只在乎你', artist: '邓丽君', url: 'https://music.163.com/#/song?id=276948' },
+    { title: '爱你', artist: '王心凌', url: 'https://music.163.com/#/song?id=253223' },
+    { title: '后来', artist: '刘若英', url: 'https://music.163.com/#/song?id=254547' },
+    { title: '蒲公英的约定', artist: '周杰伦', url: 'https://music.163.com/#/song?id=186050' },
+    { title: '有何不可', artist: '许嵩', url: 'https://music.163.com/#/song?id=167706' },
+  ];
+  const careerSongs: Song[] = [
+    { title: '追梦赤子心', artist: 'GALA', url: 'https://music.163.com/#/song?id=31010566' },
+    { title: '倔强', artist: '五月天', url: 'https://music.163.com/#/song?id=167882' },
+    { title: '我相信', artist: '杨培安', url: 'https://music.163.com/#/song?id=254233' },
+    { title: '奔跑', artist: '羽泉', url: 'https://music.163.com/#/song?id=255020' },
+    { title: '蜗牛', artist: '周杰伦', url: 'https://music.163.com/#/song?id=186083' },
+    { title: '最初的梦想', artist: '范玮琪', url: 'https://music.163.com/#/song?id=255025' },
+    { title: '淋雨一直走', artist: '张韶涵', url: 'https://music.163.com/#/song?id=25706284' },
+    { title: '平凡之路', artist: '朴树', url: 'https://music.163.com/#/song?id=28793052' },
+    { title: '稻香', artist: '周杰伦', url: 'https://music.163.com/#/song?id=185809' },
+    { title: '隐形的翅膀', artist: '张韶涵', url: 'https://music.163.com/#/song?id=253187' },
+  ];
+  const wealthSongs: Song[] = [
+    { title: '好运来', artist: '祖海', url: 'https://music.163.com/#/song?id=156351' },
+    { title: '恭喜发财', artist: '刘德华', url: 'https://music.163.com/#/song?id=5260833' },
+    { title: '发财发福中国年', artist: '张学友', url: 'https://music.163.com/#/song?id=5260850' },
+    { title: '知足', artist: '五月天', url: 'https://music.163.com/#/song?id=167937' },
+    { title: '小手拉大手', artist: '梁静茹', url: 'https://music.163.com/#/song?id=317786' },
+    { title: '阳光总在风雨后', artist: '许美静', url: 'https://music.163.com/#/song?id=317785' },
+    { title: '明天会更好', artist: '群星', url: 'https://music.163.com/#/song?id=142357' },
+    { title: '简单爱', artist: '周杰伦', url: 'https://music.163.com/#/song?id=186001' },
+    { title: '心之火', artist: 'ALIN', url: 'https://music.163.com/#/song?id=29567191' },
+    { title: '不将就', artist: '李荣浩', url: 'https://music.163.com/#/song?id=31654455' },
+  ];
+  const socialSongs: Song[] = [
+    { title: '朋友', artist: '周华健', url: 'https://music.163.com/#/song?id=5271001' },
+    { title: '干杯', artist: '五月天', url: 'https://music.163.com/#/song?id=25706282' },
+    { title: '友谊地久天长', artist: '群星', url: 'https://music.163.com/#/song?id=142359' },
+    { title: '相亲相爱', artist: '群星', url: 'https://music.163.com/#/song?id=276944' },
+    { title: '你的答案', artist: '阿冗', url: 'https://music.163.com/#/song?id=1400256289' },
+    { title: '年少有为', artist: '李荣浩', url: 'https://music.163.com/#/song?id=1293886117' },
+    { title: '光年之外', artist: '邓紫棋', url: 'https://music.163.com/#/song?id=449818741' },
+    { title: '像鱼', artist: '王贰浪', url: 'https://music.163.com/#/song?id=1297742167' },
+    { title: '晴天', artist: '周杰伦', url: 'https://music.163.com/#/song?id=186016' },
+    { title: '少年', artist: '梦然', url: 'https://music.163.com/#/song?id=1403527681' },
+  ];
+
   function buildFortune(
     name: string, emoji: string, rating: number, catSeed: number,
     summaries: Record<number, string[]>, advicePool: string[],
     goodPool: string[], badPool: string[], keywordPool: string[],
+    songPool: Song[],
   ): FortuneCategory {
     const summaryList = summaries[rating] || summaries[3];
     return {
@@ -448,14 +501,15 @@ export function generateDailyReading(params: ReadingParams): DailyReading {
       goodFor: pickMultiple(goodPool, catSeed, 3),
       badFor: pickMultiple(badPool, catSeed, 2),
       keyword: pickFromPool(keywordPool, catSeed, 300),
+      song: pickFromPool(songPool, catSeed, 400),
     };
   }
 
   const fortunes: FortuneCategory[] = [
-    buildFortune('感情运', '💕', loveRating, loveSeed, loveSummaries, loveAdvice, loveGoodFor, loveBadFor, loveKeywords),
-    buildFortune('事业运', '💼', careerRating, careerSeed, careerSummaries, careerAdvice, careerGoodFor, careerBadFor, careerKeywords),
-    buildFortune('财运', '💰', wealthRating, wealthSeed, wealthSummaries, wealthAdvice, wealthGoodFor, wealthBadFor, wealthKeywords),
-    buildFortune('社交运', '👥', socialRating, socialSeed, socialSummaries, socialAdvice, socialGoodFor, socialBadFor, socialKeywords),
+    buildFortune('感情运', '💕', loveRating, loveSeed, loveSummaries, loveAdvice, loveGoodFor, loveBadFor, loveKeywords, loveSongs),
+    buildFortune('事业运', '💼', careerRating, careerSeed, careerSummaries, careerAdvice, careerGoodFor, careerBadFor, careerKeywords, careerSongs),
+    buildFortune('财运', '💰', wealthRating, wealthSeed, wealthSummaries, wealthAdvice, wealthGoodFor, wealthBadFor, wealthKeywords, wealthSongs),
+    buildFortune('社交运', '👥', socialRating, socialSeed, socialSummaries, socialAdvice, socialGoodFor, socialBadFor, socialKeywords, socialSongs),
   ];
 
   return {
