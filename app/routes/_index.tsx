@@ -389,6 +389,10 @@ export default function Index() {
           localStorage.removeItem(ACTIVE_PROFILE_KEY);
         }
       }
+      // 清理地址栏中的 lat/lon 参数
+      if (loaderData.lat && loaderData.lon) {
+        window.history.replaceState({}, '', '/');
+      }
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
