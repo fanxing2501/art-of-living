@@ -1,7 +1,8 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { useState, useEffect, useCallback } from "react";
 import { generateDailyReading, type DailyReading } from "~/utils/lucky";
+import { getBaziInfo } from "~/utils/bazi";
 
 interface WeatherData {
   temp: string;
@@ -32,6 +33,18 @@ interface ActionData {
   } | null;
 }
 
+interface UserProfile {
+  id: string;
+  name: string;
+  birthday: string; // "YYYY-MM-DD"
+  gender: '男' | '女';
+  birthHour: number;
+  createdAt: number;
+}
+
+const PROFILES_KEY = 'huaxin_profiles';
+const ACTIVE_PROFILE_KEY = 'huaxin_active';
+
 function getWeatherEmoji(icon: string): string {
   const code = parseInt(icon);
   if (code === 100) return '☀️';
@@ -49,6 +62,23 @@ function getSeason(month: number): 'spring' | 'summer' | 'autumn' | 'winter' {
   if (month >= 6 && month <= 8) return 'summer';
   if (month >= 9 && month <= 11) return 'autumn';
   return 'winter';
+}
+
+function loadProfiles(): UserProfile[] {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    if (raw) return JSON.parse(raw) as UserProfile[];
+  } catch { /* ignore */ }
+  return [];
+}
+
+function saveProfiles(profiles: UserProfile[]) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch { /* ignore */ }
+}
+
+function getProfileBazi(profile: UserProfile) {
+  const [y, m, d] = profile.birthday.split('-').map(Number);
+  return getBaziInfo(y, m, d, profile.birthHour);
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -184,14 +214,13 @@ const HOUR_OPTIONS = [
   { value: 21, label: '亥时 (21:00-23:00)', symbol: '🐷' },
 ];
 
-const STORAGE_KEY = 'huaxin_user';
-
-interface SavedUser {
-  name: string;
-  birthday: string;
-  gender: string;
-  birthHour: string;
-}
+const ELEMENT_BADGE_COLORS: Record<string, string> = {
+  '木': 'bg-emerald-100/80 text-emerald-600 border-emerald-200/60',
+  '火': 'bg-red-100/80 text-red-600 border-red-200/60',
+  '土': 'bg-amber-100/80 text-amber-600 border-amber-200/60',
+  '金': 'bg-yellow-100/80 text-yellow-600 border-yellow-200/60',
+  '水': 'bg-blue-100/80 text-blue-600 border-blue-200/60',
+};
 
 function getZodiacEmoji(zodiac: string): string {
   const map: Record<string, string> = {
@@ -258,124 +287,160 @@ export default function Index() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submit = useSubmit();
-  const isSubmitting = navigation.state === 'submitting';
-
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [activeProfile, setActiveProfile] = useState<UserProfile | null>(null);
+  const [view, setView] = useState<'home' | 'add' | 'edit' | 'loading' | 'result'>('home');
   const [geoError, setGeoError] = useState<string | null>(null);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [savedUser, setSavedUser] = useState<SavedUser | null>(null);
-  const [autoSubmitting, setAutoSubmitting] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
-  // On mount: check localStorage for saved user
+  // Load profiles on mount
   useEffect(() => {
+    setProfiles(loadProfiles());
+    // Migrate old single-user data
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as SavedUser;
-        if (parsed.name && parsed.birthday && parsed.gender) {
-          setSavedUser(parsed);
-          setAutoSubmitting(true);
-          // If no coords in URL, auto-detect geolocation
-          if (!loaderData.lat || !loaderData.lon) {
-            if (navigator.geolocation) {
-              setGeoLoading(true);
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  const { latitude, longitude } = pos.coords;
-                  setGeoLoading(false);
-                  window.location.href = `/?lat=${latitude}&lon=${longitude}`;
-                },
-                () => {
-                  // Geo failed — fall back to normal flow
-                  setAutoSubmitting(false);
-                  setGeoLoading(false);
-                }
-              );
-            } else {
-              setAutoSubmitting(false);
-            }
+      const old = localStorage.getItem('huaxin_user');
+      if (old) {
+        const parsed = JSON.parse(old) as { name: string; birthday: string; gender: string; birthHour: string };
+        if (parsed.name && parsed.birthday) {
+          const existing = loadProfiles();
+          if (!existing.some(p => p.name === parsed.name && p.birthday === parsed.birthday)) {
+            const migrated: UserProfile = {
+              id: Date.now().toString(),
+              name: parsed.name,
+              birthday: parsed.birthday,
+              gender: (parsed.gender as '男' | '女') || '男',
+              birthHour: parseInt(parsed.birthHour) || 0,
+              createdAt: Date.now(),
+            };
+            const updated = [...existing, migrated];
+            saveProfiles(updated);
+            setProfiles(updated);
           }
+          localStorage.removeItem('huaxin_user');
         }
       }
-    } catch {
-      // Ignore parse errors
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-submit when weather is ready + savedUser exists + autoSubmitting
-  useEffect(() => {
-    if (autoSubmitting && savedUser && loaderData.weather && !actionData?.reading && navigation.state === 'idle') {
-      const formData = new FormData();
-      formData.set('name', savedUser.name);
-      formData.set('birthday', savedUser.birthday);
-      formData.set('gender', savedUser.gender);
-      formData.set('birthHour', savedUser.birthHour);
-      formData.set('weatherTemp', loaderData.weather.temp || '20');
-      formData.set('weatherCode', loaderData.weather.icon || '100');
-      formData.set('weatherHumidity', loaderData.weather.humidity || '60');
-      formData.set('weatherWindSpeed', loaderData.weather.windSpeed || '3');
-      formData.set('weatherWindDir', loaderData.weather.windDir || '东');
-      formData.set('weatherText', loaderData.weather.text || '晴');
-      submit(formData, { method: 'post' });
-    }
-  }, [autoSubmitting, savedUser, loaderData.weather, actionData?.reading, navigation.state, submit]);
-
-  useEffect(() => {
-    if (actionData?.reading) {
-      setAutoSubmitting(false);
-      setStep(4);
-    }
-  }, [actionData]);
-
-  // Save user data to localStorage on successful form submission
-  useEffect(() => {
-    if (actionData?.reading && actionData?.formData) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(actionData.formData));
-      } catch {
-        // Ignore storage errors
-      }
-    }
-  }, [actionData]);
-
-  useEffect(() => {
-    if (loaderData.lat && loaderData.lon) {
-      setCoords({ lat: parseFloat(loaderData.lat), lon: parseFloat(loaderData.lon) });
-    }
-  }, [loaderData]);
-
-  const handleClearUser = () => {
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-    setSavedUser(null);
-    setAutoSubmitting(false);
-    setStep(1);
-    window.scrollTo(0, 0);
-  };
-
-  const handleGeolocate = () => {
-    if (!navigator.geolocation) {
-      setGeoError('您的浏览器不支持地理定位');
-      return;
-    }
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lon: longitude });
-        setGeoLoading(false);
-        window.location.href = `/?lat=${latitude}&lon=${longitude}`;
-      },
-      (err) => {
-        setGeoError(`定位失败: ${err.message}`);
-        setGeoLoading(false);
-      }
-    );
-  };
+    } catch { /* ignore */ }
+  }, []);
 
   const weather = loaderData.weather;
   const bg = getSeasonalBackground(weather?.text);
+
+  const submitForProfile = useCallback((profile: UserProfile) => {
+    if (!weather) return;
+    const formData = new FormData();
+    formData.set('name', profile.name);
+    formData.set('birthday', profile.birthday);
+    formData.set('gender', profile.gender);
+    formData.set('birthHour', String(profile.birthHour));
+    formData.set('weatherTemp', weather.temp || '20');
+    formData.set('weatherCode', weather.icon || '100');
+    formData.set('weatherHumidity', weather.humidity || '60');
+    formData.set('weatherWindSpeed', weather.windSpeed || '3');
+    formData.set('weatherWindDir', weather.windDir || '东');
+    formData.set('weatherText', weather.text || '晴');
+    submit(formData, { method: 'post' });
+  }, [weather, submit]);
+
+  const triggerGeoAndSubmit = useCallback((profile: UserProfile) => {
+    setActiveProfile(profile);
+    setView('loading');
+    // If we already have coords+weather from URL, submit directly
+    if (loaderData.lat && loaderData.lon && weather) {
+      setPendingSubmit(true);
+      return;
+    }
+    // Need geolocation
+    if (!navigator.geolocation) {
+      setGeoError('您的浏览器不支持地理定位');
+      setView('home');
+      return;
+    }
+    try {
+      localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id);
+    } catch { /* ignore */ }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        window.location.href = `/?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`;
+      },
+      () => {
+        // Fallback: submit without weather
+        setPendingSubmit(true);
+      }
+    );
+  }, [loaderData.lat, loaderData.lon, weather]);
+
+  // On mount with active profile ID in localStorage (returning from geo redirect)
+  useEffect(() => {
+    try {
+      const activeId = localStorage.getItem(ACTIVE_PROFILE_KEY);
+      if (activeId && loaderData.lat && loaderData.lon) {
+        const all = loadProfiles();
+        const found = all.find(p => p.id === activeId);
+        if (found) {
+          setActiveProfile(found);
+          setView('loading');
+          setPendingSubmit(true);
+          localStorage.removeItem(ACTIVE_PROFILE_KEY);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Submit when pending + weather available
+  useEffect(() => {
+    if (pendingSubmit && activeProfile && weather && navigation.state === 'idle' && !actionData?.reading) {
+      setPendingSubmit(false);
+      submitForProfile(activeProfile);
+    }
+  }, [pendingSubmit, activeProfile, weather, navigation.state, actionData?.reading, submitForProfile]);
+
+  // Show results when action completes
+  useEffect(() => {
+    if (actionData?.reading) {
+      setView('result');
+    }
+  }, [actionData]);
+
+  const handleSelectProfile = (profile: UserProfile) => {
+    triggerGeoAndSubmit(profile);
+  };
+
+  const handleAddProfile = (profile: Omit<UserProfile, 'id' | 'createdAt'>) => {
+    const newProfile: UserProfile = {
+      ...profile,
+      id: Date.now().toString(),
+      createdAt: Date.now(),
+    };
+    const updated = [...profiles, newProfile];
+    saveProfiles(updated);
+    setProfiles(updated);
+    triggerGeoAndSubmit(newProfile);
+  };
+
+  const handleEditProfile = (profile: Omit<UserProfile, 'id' | 'createdAt'>) => {
+    if (!activeProfile) return;
+    const updated: UserProfile = { ...activeProfile, ...profile };
+    const newProfiles = profiles.map(p => p.id === activeProfile.id ? updated : p);
+    saveProfiles(newProfiles);
+    setProfiles(newProfiles);
+    triggerGeoAndSubmit(updated);
+  };
+
+  const handleDeleteProfile = (id: string) => {
+    const updated = profiles.filter(p => p.id !== id);
+    saveProfiles(updated);
+    setProfiles(updated);
+    if (activeProfile?.id === id) {
+      setActiveProfile(null);
+      setView('home');
+    }
+  };
+
+  const goHome = () => {
+    setActiveProfile(null);
+    setView('home');
+    window.scrollTo(0, 0);
+  };
 
   const ratingStars = (rating: number) =>
     Array.from({ length: 5 }, (_, i) => (
@@ -390,250 +455,158 @@ export default function Index() {
         style={{ backgroundImage: `url(${bg.imageUrl})` }}
       />
 
-      {/* Auto-submit loading screen */}
-      {autoSubmitting && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="text-center space-y-4 animate-fade-in">
-            <div className="text-5xl animate-pulse">{getSeasonEmoji()}</div>
-            <p className="font-serif-cn text-lg text-rose-500 tracking-wide">花信正在为您准备今日运势...</p>
-            <div className="flex items-center justify-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-rose-300 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Frosted glass header */}
       <header className="glass-header sticky top-0 z-50 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{getSeasonEmoji()}</span>
-            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">花信</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {savedUser && (
-              <button
-                onClick={handleClearUser}
-                className="text-xs text-rose-400 hover:text-rose-600 transition-colors px-2 py-1 rounded-full border border-rose-200/60 bg-white/40 hover:bg-white/70"
-              >
-                修改信息
+            {(view === 'result' || view === 'add' || view === 'edit') && (
+              <button onClick={goHome} className="text-rose-400 hover:text-rose-600 transition-colors mr-1 text-sm">
+                ← 返回
               </button>
             )}
-            <div className="text-right">
-              <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
-              <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
-            </div>
+            <span className="text-2xl">{getSeasonEmoji()}</span>
+            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">花信</h1>
+            {view === 'result' && activeProfile && (
+              <span className="text-sm text-gray-500 font-serif-cn ml-1">· {activeProfile.name}</span>
+            )}
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
+            <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
           </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6 relative z-10">
 
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-3 text-xs mb-2 animate-fade-in">
-          {['天气气象', '个人信息', '今日运势'].map((label, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300
-                ${step > i + 1 ? 'bg-rose-400 text-white shadow-sm'
-                  : step === i + 1 ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
-                  : 'bg-white/60 text-gray-400 border border-white/80'}`}>
-                {step > i + 1 ? '✓' : i + 1}
-              </span>
-              <span className={`hidden sm:inline ${step === i + 1 ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>{label}</span>
-              {i < 2 && <span className="text-rose-300">·</span>}
-            </div>
-          ))}
-        </div>
-
-        {/* Step 1 — Hero */}
-        {step === 1 && (
-          <div className="animate-fade-in text-center py-8 space-y-8">
-            <div className="space-y-4">
-              <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">
-                花信
-              </h2>
-              <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Bloom Signal</p>
-              <div className="flex items-center justify-center gap-2 text-rose-300 text-sm">
-                <span>✿</span><span>✿</span><span>✿</span>
-              </div>
-              <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
-                融合五行生肖、天干地支、气象节令，为您定制今日专属运势、幸运色与饮食养生指南
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto animate-fade-in-delay">
-              {[
-                { icon: '🌤', label: '天气节令', desc: '实时气象数据' },
-                { icon: '☯️', label: '五行八字', desc: '天干地支推算' },
-                { icon: '🍃', label: '养生指南', desc: '幸运色与食疗' },
-              ].map((item) => (
-                <div key={item.label} className="glass rounded-2xl p-4 text-center hover:scale-105 transition-transform duration-300">
-                  <div className="text-3xl mb-2">{item.icon}</div>
-                  <p className="text-xs font-semibold text-gray-700">{item.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+        {/* Home — Profile list */}
+        {view === 'home' && (
+          <div className="animate-fade-in space-y-6">
+            {profiles.length === 0 ? (
+              /* Welcome screen when no profiles */
+              <div className="text-center py-8 space-y-8">
+                <div className="space-y-4">
+                  <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">花信</h2>
+                  <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Bloom Signal</p>
+                  <div className="flex items-center justify-center gap-2 text-rose-300 text-sm">
+                    <span>✿</span><span>✿</span><span>✿</span>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
+                    融合五行生肖、天干地支、气象节令，为您定制今日专属运势、幸运色与饮食养生指南
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            <div className="animate-fade-in-delay-2">
-              <button
-                onClick={() => setStep(2)}
-                className="btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
-              >
-                开始探索 ✦
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2 — Weather */}
-        {step === 2 && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
-              <div className="px-5 py-4 border-b border-white/30">
-                <h2 className="font-serif-cn font-semibold text-gray-700 flex items-center gap-2">
-                  <span className="text-rose-400">❀</span> 天气与位置
-                </h2>
-              </div>
-              <div className="p-5 space-y-4">
-                {!weather ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600 text-center">获取您的位置以读取当地天气信息</p>
-                    {geoError && (
-                      <div className="flex items-start gap-2 bg-amber-50/80 border border-amber-200/60 rounded-xl p-3">
-                        <span className="text-sm">⚠️</span>
-                        <p className="text-xs text-amber-700">{geoError}</p>
-                      </div>
-                    )}
-                    {loaderData.error && (
-                      <div className="flex items-start gap-2 bg-red-50/80 border border-red-200/60 rounded-xl p-3">
-                        <span className="text-sm">❌</span>
-                        <p className="text-xs text-red-600">{loaderData.error}</p>
-                      </div>
-                    )}
-                    <button
-                      onClick={handleGeolocate}
-                      disabled={geoLoading}
-                      className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm disabled:opacity-50"
-                    >
-                      {geoLoading ? '⏳ 正在定位...' : '📍 获取我的位置'}
-                    </button>
-                    <button
-                      onClick={() => setStep(3)}
-                      className="w-full text-gray-500 text-sm py-2 hover:text-rose-500 transition-colors"
-                    >
-                      跳过，使用默认天气数据 →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-5 glass rounded-2xl">
-                      <div>
-                        <p className="font-serif-cn text-4xl font-bold text-gray-800">{weather.temp}°</p>
-                        <p className="text-sm text-gray-600 mt-1">{weather.text}</p>
-                        {weather.locationName && (
-                          <p className="text-xs text-rose-400 mt-1">📍 {weather.locationName}</p>
-                        )}
-                      </div>
-                      <div className="text-6xl drop-shadow-sm">{getWeatherEmoji(weather.icon)}</div>
+                <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto animate-fade-in-delay">
+                  {[
+                    { icon: '🌤', label: '天气节令', desc: '实时气象数据' },
+                    { icon: '☯️', label: '五行八字', desc: '天干地支推算' },
+                    { icon: '🍃', label: '养生指南', desc: '幸运色与食疗' },
+                  ].map((item) => (
+                    <div key={item.label} className="glass rounded-2xl p-4 text-center hover:scale-105 transition-transform duration-300">
+                      <div className="text-3xl mb-2">{item.icon}</div>
+                      <p className="text-xs font-semibold text-gray-700">{item.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: '体感温度', value: `${weather.feelsLike}°C` },
-                        { label: '湿度', value: `${weather.humidity}%` },
-                        { label: '风速', value: `${weather.windSpeed} m/s` },
-                      ].map((item) => (
-                        <div key={item.label} className="text-center p-3 glass rounded-xl">
-                          <p className="text-xs text-gray-500">{item.label}</p>
-                          <p className="text-sm font-semibold text-gray-700 mt-0.5">{item.value}</p>
+                  ))}
+                </div>
+
+                <div className="animate-fade-in-delay-2">
+                  <button
+                    onClick={() => setView('add')}
+                    className="btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
+                  >
+                    ＋ 添加成员，开始探索 ✦
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Profile grid */
+              <>
+                <div className="text-center space-y-1">
+                  <h2 className="font-serif-cn text-2xl font-bold text-gray-800">选择成员</h2>
+                  <p className="text-sm text-gray-500">点击查看今日运势</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {profiles.map((profile) => {
+                    const bazi = getProfileBazi(profile);
+                    const zodiacEmoji = getZodiacEmoji(bazi.zodiac);
+                    const elementColor = ELEMENT_BADGE_COLORS[bazi.element] || ELEMENT_BADGE_COLORS['土'];
+                    return (
+                      <button
+                        key={profile.id}
+                        onClick={() => handleSelectProfile(profile)}
+                        className="glass rounded-2xl p-4 text-center hover:scale-105 hover:shadow-lg hover:shadow-rose-100/40 transition-all duration-300 relative group"
+                      >
+                        {/* Delete button */}
+                        <span
+                          onClick={(e) => { e.stopPropagation(); handleDeleteProfile(profile.id); }}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/60 text-gray-400 hover:text-red-500 hover:bg-red-50/80 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </span>
+                        <div className="text-4xl mb-2">{zodiacEmoji}</div>
+                        <p className="font-serif-cn font-semibold text-gray-800 text-sm">{profile.name}</p>
+                        <div className="flex gap-1.5 mt-2 justify-center flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${elementColor}`}>{bazi.element}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full border bg-amber-100/80 text-amber-600 border-amber-200/60 font-medium">{bazi.yinYang}</span>
                         </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setStep(3)}
-                      className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
-                    >
-                      继续 →
-                    </button>
-                  </div>
-                )}
+                        <p className="text-xs text-gray-400 mt-2">{profile.birthday}</p>
+                      </button>
+                    );
+                  })}
+
+                  {/* Add new profile card */}
+                  <button
+                    onClick={() => setView('add')}
+                    className="rounded-2xl p-4 text-center border-2 border-dashed border-rose-200/60 hover:border-rose-400 hover:bg-rose-50/30 transition-all duration-300 flex flex-col items-center justify-center min-h-[160px]"
+                  >
+                    <div className="text-3xl text-rose-300 mb-2">＋</div>
+                    <p className="text-sm text-rose-400 font-medium">添加新成员</p>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Loading state */}
+        {view === 'loading' && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="text-center space-y-4 animate-fade-in">
+              <div className="text-5xl animate-pulse">{getSeasonEmoji()}</div>
+              <p className="font-serif-cn text-lg text-rose-500 tracking-wide">
+                花信正在为 {activeProfile?.name} 解读今日运势...
+              </p>
+              <div className="flex items-center justify-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-rose-300 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
+              {geoError && <p className="text-xs text-amber-600">{geoError}</p>}
             </div>
           </div>
         )}
 
-        {/* Step 3 — Personal Info */}
-        {step === 3 && (
+        {/* Add / Edit profile form */}
+        {(view === 'add' || view === 'edit') && (
           <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in">
             <div className="px-5 py-4 border-b border-white/30">
               <h2 className="font-serif-cn font-semibold text-gray-700 flex items-center gap-2">
-                <span className="text-rose-400">❀</span> 个人信息
+                <span className="text-rose-400">❀</span>
+                {view === 'edit' ? '修改信息' : '添加成员'}
               </h2>
             </div>
-            <Form method="post" ref={formRef} className="p-5 space-y-5">
-              <input type="hidden" name="lat" value={coords?.lat || ''} />
-              <input type="hidden" name="lon" value={coords?.lon || ''} />
-              <input type="hidden" name="weatherTemp" value={weather?.temp || '20'} />
-              <input type="hidden" name="weatherCode" value={weather?.icon || '100'} />
-              <input type="hidden" name="weatherHumidity" value={weather?.humidity || '60'} />
-              <input type="hidden" name="weatherWindSpeed" value={weather?.windSpeed || '3'} />
-              <input type="hidden" name="weatherWindDir" value={weather?.windDir || '东'} />
-              <input type="hidden" name="weatherText" value={weather?.text || '晴'} />
-
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-600">姓名 <span className="text-rose-400">*</span></label>
-                <input type="text" name="name" placeholder="请输入您的姓名" required
-                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-white/60 transition-all" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-600">出生日期 <span className="text-rose-400">*</span></label>
-                <input type="date" name="birthday" required
-                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-600">性别 <span className="text-rose-400">*</span></label>
-                <div className="flex gap-3">
-                  {['男', '女'].map((g) => (
-                    <label key={g} className="flex items-center gap-2 cursor-pointer flex-1 border border-rose-200/60 rounded-xl px-4 py-2.5 bg-white/60 hover:bg-rose-50/60 transition-colors has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50/80">
-                      <input type="radio" name="gender" value={g} required className="accent-rose-500" />
-                      <span className="text-sm text-gray-700 font-medium">{g === '男' ? '♂ 男' : '♀ 女'}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-600">出生时辰</label>
-                <select name="birthHour"
-                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all">
-                  {HOUR_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.symbol} {opt.label}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-400">用于八字推算（可选）</p>
-              </div>
-
-              {actionData?.error && (
-                <div className="flex items-center gap-2 bg-red-50/80 border border-red-200/60 rounded-xl p-3">
-                  <span>❌</span>
-                  <p className="text-xs text-red-600">{actionData.error}</p>
-                </div>
-              )}
-
-              <button type="submit" disabled={isSubmitting}
-                className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm disabled:opacity-50">
-                {isSubmitting ? '✦ 正在推算运势...' : '✦ 开始今日运势'}
-              </button>
-            </Form>
+            <ProfileForm
+              initialData={view === 'edit' ? activeProfile : null}
+              onSubmit={view === 'edit' ? handleEditProfile : handleAddProfile}
+              onCancel={goHome}
+              submitLabel={view === 'edit' ? '✦ 保存并查看运势' : '✦ 开始今日运势'}
+            />
           </div>
         )}
 
-        {/* Step 4 — Results */}
-        {step === 4 && actionData?.reading && (
+        {/* Results */}
+        {view === 'result' && actionData?.reading && (
           <div className="space-y-5 animate-fade-in">
 
             {/* Profile header */}
@@ -753,20 +726,31 @@ export default function Index() {
               </div>
             </div>
 
-            <button
-              onClick={() => { setStep(1); window.scrollTo(0, 0); }}
-              className="w-full glass rounded-full py-3 text-gray-600 text-sm font-medium hover:bg-white/80 transition-all"
-            >
-              ↺ 重新开始
-            </button>
-            {savedUser && (
+            {/* Action buttons */}
+            <div className="space-y-3">
               <button
-                onClick={handleClearUser}
-                className="w-full glass rounded-full py-3 text-rose-500 text-sm font-medium hover:bg-white/80 transition-all"
+                onClick={goHome}
+                className="w-full glass rounded-full py-3 text-gray-600 text-sm font-medium hover:bg-white/80 transition-all"
               >
-                切换用户 / 修改信息
+                ← 返回成员列表
               </button>
-            )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setView('edit')}
+                  className="flex-1 glass rounded-full py-3 text-rose-500 text-sm font-medium hover:bg-white/80 transition-all"
+                >
+                  修改信息
+                </button>
+                {activeProfile && (
+                  <button
+                    onClick={() => handleDeleteProfile(activeProfile.id)}
+                    className="glass rounded-full py-3 px-6 text-red-400 text-sm font-medium hover:bg-red-50/60 transition-all"
+                  >
+                    删除
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -779,5 +763,107 @@ export default function Index() {
         <p className="mt-1 text-gray-400">五行理论 & 和风天气 驱动</p>
       </footer>
     </div>
+  );
+}
+
+/* ─── Profile Form sub-component ─── */
+
+function ProfileForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  submitLabel,
+}: {
+  initialData: UserProfile | null;
+  onSubmit: (data: Omit<UserProfile, 'id' | 'createdAt'>) => void;
+  onCancel: () => void;
+  submitLabel: string;
+}) {
+  const [name, setName] = useState(initialData?.name || '');
+  const [birthday, setBirthday] = useState(initialData?.birthday || '');
+  const [gender, setGender] = useState<'男' | '女'>(initialData?.gender || '男');
+  const [birthHour, setBirthHour] = useState(initialData?.birthHour ?? 23);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !birthday) return;
+    onSubmit({ name: name.trim(), birthday, gender, birthHour });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-5 space-y-5">
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-600">姓名 <span className="text-rose-400">*</span></label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="请输入姓名"
+          required
+          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-white/60 transition-all"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-600">出生日期 <span className="text-rose-400">*</span></label>
+        <input
+          type="date"
+          value={birthday}
+          onChange={e => setBirthday(e.target.value)}
+          required
+          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-600">性别 <span className="text-rose-400">*</span></label>
+        <div className="flex gap-3">
+          {(['男', '女'] as const).map((g) => (
+            <label key={g} className={`flex items-center gap-2 cursor-pointer flex-1 border rounded-xl px-4 py-2.5 transition-colors
+              ${gender === g ? 'border-rose-400 bg-rose-50/80' : 'border-rose-200/60 bg-white/60 hover:bg-rose-50/60'}`}>
+              <input
+                type="radio"
+                name="gender"
+                value={g}
+                checked={gender === g}
+                onChange={() => setGender(g)}
+                className="accent-rose-500"
+              />
+              <span className="text-sm text-gray-700 font-medium">{g === '男' ? '♂ 男' : '♀ 女'}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-600">出生时辰</label>
+        <select
+          value={birthHour}
+          onChange={e => setBirthHour(parseInt(e.target.value))}
+          className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all"
+        >
+          {HOUR_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.symbol} {opt.label}</option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-400">用于八字推算（可选）</p>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 glass rounded-full py-3 text-gray-600 text-sm font-medium hover:bg-white/80 transition-all"
+        >
+          返回
+        </button>
+        <button
+          type="submit"
+          className="flex-1 btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </form>
   );
 }
