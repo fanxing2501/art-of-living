@@ -711,13 +711,17 @@ export default function Index() {
                       <p className="text-xs text-amber-600 mb-2 flex items-center gap-1.5">
                         <span>🎵</span> 今日适宜听 · {fortune.song.title} — {fortune.song.artist}
                       </p>
-                      <div className="rounded-xl overflow-hidden">
+                      <div className="rounded-xl overflow-hidden border border-stone-200/60">
                         <iframe
                           frameBorder="0"
-                          width="100%"
+                          marginWidth={0}
+                          marginHeight={0}
+                          width="330"
                           height="86"
                           src={`https://music.163.com/outchain/player?type=2&id=${fortune.song.songId}&auto=0&height=66`}
-                        />
+                          allow="autoplay; encrypted-media"
+                          style={{ maxWidth: '100%' }}
+                        ></iframe>
                       </div>
                     </div>
                   </div>
