@@ -133,7 +133,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     return { weather, error: null, lat, lon };
   } catch {
-    return { weather: null, error: '获取天气失败，请检查网络', lat, lon };
+    // 超时或网络错误时返回默认天气，不阻塞用户
+    return { weather: { temp: '20', feelsLike: '20', text: '晴', windDir: '东', windSpeed: '3', humidity: '60', icon: '100' } as WeatherData, error: null, lat, lon };
   }
 }
 
@@ -332,18 +333,17 @@ export default function Index() {
   const bg = getSeasonalBackground(weather?.text);
 
   const submitForProfile = useCallback((profile: UserProfile) => {
-    if (!weather) return;
     const formData = new FormData();
     formData.set('name', profile.name);
     formData.set('birthday', profile.birthday);
     formData.set('gender', profile.gender);
     formData.set('birthHour', String(profile.birthHour));
-    formData.set('weatherTemp', weather.temp || '20');
-    formData.set('weatherCode', weather.icon || '100');
-    formData.set('weatherHumidity', weather.humidity || '60');
-    formData.set('weatherWindSpeed', weather.windSpeed || '3');
-    formData.set('weatherWindDir', weather.windDir || '东');
-    formData.set('weatherText', weather.text || '晴');
+    formData.set('weatherTemp', weather?.temp || '20');
+    formData.set('weatherCode', weather?.icon || '100');
+    formData.set('weatherHumidity', weather?.humidity || '60');
+    formData.set('weatherWindSpeed', weather?.windSpeed || '3');
+    formData.set('weatherWindDir', weather?.windDir || '东');
+    formData.set('weatherText', weather?.text || '晴');
     submit(formData, { method: 'post' });
   }, [weather, submit]);
 
@@ -351,7 +351,7 @@ export default function Index() {
     setActiveProfile(profile);
     setView('loading');
     // If we already have coords+weather from URL, submit directly
-    if (loaderData.lat && loaderData.lon && weather) {
+    if (loaderData.lat && loaderData.lon) {
       setPendingSubmit(true);
       return;
     }
@@ -394,7 +394,7 @@ export default function Index() {
 
   // Submit when pending + weather available
   useEffect(() => {
-    if (pendingSubmit && activeProfile && weather && navigation.state === 'idle' && !actionData?.reading) {
+    if (pendingSubmit && activeProfile && navigation.state === 'idle' && !actionData?.reading) {
       setPendingSubmit(false);
       submitForProfile(activeProfile);
     }
