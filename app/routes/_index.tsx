@@ -192,6 +192,58 @@ function getZodiacEmoji(zodiac: string): string {
   return map[zodiac] || '🐲';
 }
 
+function getSeasonalBackground(weatherText?: string): { className: string; imageUrl?: string } {
+  const month = new Date().getMonth() + 1;
+  const season = getSeason(month);
+
+  const weatherCategory = (() => {
+    if (!weatherText) return 'sunny';
+    if (weatherText.includes('雪')) return 'snowy';
+    if (weatherText.includes('雨') || weatherText.includes('雷')) return 'rainy';
+    if (weatherText.includes('云') || weatherText.includes('阴')) return 'cloudy';
+    return 'sunny';
+  })();
+
+  const images: Record<string, Record<string, string>> = {
+    spring: {
+      sunny: 'photo-1462275646964-a0e3c11f18a6',
+      rainy: 'photo-1515694346937-94d85e39d29f',
+      cloudy: 'photo-1462275646964-a0e3c11f18a6',
+      snowy: 'photo-1515694346937-94d85e39d29f',
+    },
+    summer: {
+      sunny: 'photo-1507525428034-b723cf961d3e',
+      rainy: 'photo-1534274988757-a28bf1a57c17',
+      cloudy: 'photo-1534274988757-a28bf1a57c17',
+      snowy: 'photo-1507525428034-b723cf961d3e',
+    },
+    autumn: {
+      sunny: 'photo-1507003211169-0a1dd7228f2d',
+      rainy: 'photo-1541789094913-f3809a8f3ba5',
+      cloudy: 'photo-1541789094913-f3809a8f3ba5',
+      snowy: 'photo-1541789094913-f3809a8f3ba5',
+    },
+    winter: {
+      sunny: 'photo-1491002052546-bf38f186af56',
+      rainy: 'photo-1457269449834-928af64c684d',
+      cloudy: 'photo-1457269449834-928af64c684d',
+      snowy: 'photo-1457269449834-928af64c684d',
+    },
+  };
+
+  const gradientClass = `bg-${season}`;
+  const photoId = images[season][weatherCategory];
+  const imageUrl = `https://images.unsplash.com/${photoId}?w=1920&q=80`;
+
+  return { className: gradientClass, imageUrl };
+}
+
+function getSeasonEmoji(): string {
+  const season = getSeason(new Date().getMonth() + 1);
+  const map = { spring: '🌸', summer: '☀️', autumn: '🍂', winter: '❄️' };
+  return map[season];
+}
+
 export default function Index() {
   const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
@@ -236,75 +288,89 @@ export default function Index() {
   };
 
   const weather = loaderData.weather;
+  const bg = getSeasonalBackground(weather?.text);
 
   const ratingStars = (rating: number) =>
     Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < rating ? 'text-yellow-500' : 'text-gray-300'}>★</span>
+      <span key={i} className={i < rating ? 'star-filled' : 'star-empty'}>★</span>
     ));
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa] font-sans">
-      {/* GitHub-style navbar */}
-      <header className="bg-[#24292f] text-white px-4 py-3 border-b border-[#444c56]">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <svg height="32" viewBox="0 0 16 16" width="32" fill="white" aria-hidden="true">
-              <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
-            </svg>
-            <span className="font-semibold text-base">Art of Living</span>
+    <div className={`min-h-screen ${bg.className} font-sans relative`}>
+      {/* Background image layer */}
+      <div
+        className="bg-scene"
+        style={{ backgroundImage: `url(${bg.imageUrl})` }}
+      />
+
+      {/* Frosted glass header */}
+      <header className="glass-header sticky top-0 z-50 px-4 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{getSeasonEmoji()}</span>
+            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">新黄历</h1>
           </div>
-          <div className="text-[#8b949e] text-xs">{getGregorianDateText()} · {getLunarDateText()}</div>
+          <div className="text-right">
+            <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
+            <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-4">
+      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6 relative z-10">
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2 text-xs text-[#57606a] mb-2">
-          {['Location & Weather', 'Personal Info', 'Your Reading'].map((label, i) => (
+        <div className="flex items-center justify-center gap-3 text-xs mb-2 animate-fade-in">
+          {['天气气象', '个人信息', '今日运势'].map((label, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold border
-                ${step > i + 1 ? 'bg-[#1f883d] border-[#1f883d] text-white'
-                  : step === i + 1 ? 'bg-[#0969da] border-[#0969da] text-white'
-                  : 'bg-white border-[#d0d7de] text-[#57606a]'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300
+                ${step > i + 1 ? 'bg-rose-400 text-white shadow-sm'
+                  : step === i + 1 ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
+                  : 'bg-white/60 text-gray-400 border border-white/80'}`}>
                 {step > i + 1 ? '✓' : i + 1}
               </span>
-              <span className={step === i + 1 ? 'text-[#0969da] font-medium' : ''}>{label}</span>
-              {i < 2 && <span className="text-[#d0d7de]">›</span>}
+              <span className={`hidden sm:inline ${step === i + 1 ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>{label}</span>
+              {i < 2 && <span className="text-rose-300">·</span>}
             </div>
           ))}
         </div>
 
         {/* Step 1 — Hero */}
         {step === 1 && (
-          <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-            <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-3 flex items-center gap-2">
-              <span className="text-base">✦</span>
-              <span className="font-semibold text-[#24292f] text-sm">Art of Living — Daily Reading</span>
-            </div>
-            <div className="p-6 space-y-5">
-              <p className="text-[#57606a] text-sm leading-relaxed">
-                Art of Living combines Five Elements (五行), Chinese Zodiac, birth chart (生辰八字),
-                local weather, and seasonal energy to generate your personalized daily lucky colors and dietary guidance.
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { icon: '🌤', label: 'Weather & Season', desc: 'Real-time local data' },
-                  { icon: '☯', label: 'Five Elements', desc: '天干地支 · 五行' },
-                  { icon: '🍃', label: 'Wellness Guide', desc: 'Foods & lucky colors' },
-                ].map((item) => (
-                  <div key={item.label} className="border border-[#d0d7de] rounded-md p-3 text-center bg-[#f6f8fa]">
-                    <div className="text-2xl mb-1">{item.icon}</div>
-                    <p className="text-xs font-semibold text-[#24292f]">{item.label}</p>
-                    <p className="text-xs text-[#57606a] mt-0.5">{item.desc}</p>
-                  </div>
-                ))}
+          <div className="animate-fade-in text-center py-8 space-y-8">
+            <div className="space-y-4">
+              <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">
+                新黄历
+              </h2>
+              <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Art of Living</p>
+              <div className="flex items-center justify-center gap-2 text-rose-300 text-sm">
+                <span>✿</span><span>✿</span><span>✿</span>
               </div>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
+                融合五行生肖、天干地支、气象节令，为您定制今日专属运势、幸运色与饮食养生指南
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto animate-fade-in-delay">
+              {[
+                { icon: '🌤', label: '天气节令', desc: '实时气象数据' },
+                { icon: '☯️', label: '五行八字', desc: '天干地支推算' },
+                { icon: '🍃', label: '养生指南', desc: '幸运色与食疗' },
+              ].map((item) => (
+                <div key={item.label} className="glass rounded-2xl p-4 text-center hover:scale-105 transition-transform duration-300">
+                  <div className="text-3xl mb-2">{item.icon}</div>
+                  <p className="text-xs font-semibold text-gray-700">{item.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="animate-fade-in-delay-2">
               <button
                 onClick={() => setStep(2)}
-                className="w-full bg-[#1f883d] hover:bg-[#1a7f37] text-white text-sm font-semibold py-2 px-4 rounded-md border border-[#1f883d] transition-colors"
+                className="btn-pill bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
               >
-                Get started →
+                开始探索 ✦
               </button>
             </div>
           </div>
@@ -312,70 +378,72 @@ export default function Index() {
 
         {/* Step 2 — Weather */}
         {step === 2 && (
-          <div className="space-y-4">
-            <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-              <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-3">
-                <h2 className="font-semibold text-[#24292f] text-sm">Location &amp; Weather</h2>
+          <div className="space-y-4 animate-fade-in">
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
+              <div className="px-5 py-4 border-b border-white/30">
+                <h2 className="font-serif-cn font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="text-rose-400">❀</span> 天气与位置
+                </h2>
               </div>
               <div className="p-5 space-y-4">
                 {!weather ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-[#57606a]">Allow location access to fetch your local weather conditions.</p>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 text-center">获取您的位置以读取当地天气信息</p>
                     {geoError && (
-                      <div className="flex items-start gap-2 bg-[#fff8c5] border border-[#d4a72c] rounded-md p-3">
+                      <div className="flex items-start gap-2 bg-amber-50/80 border border-amber-200/60 rounded-xl p-3">
                         <span className="text-sm">⚠️</span>
-                        <p className="text-xs text-[#633c01]">{geoError}</p>
+                        <p className="text-xs text-amber-700">{geoError}</p>
                       </div>
                     )}
                     {loaderData.error && (
-                      <div className="flex items-start gap-2 bg-[#ffebe9] border border-[#ff818266] rounded-md p-3">
+                      <div className="flex items-start gap-2 bg-red-50/80 border border-red-200/60 rounded-xl p-3">
                         <span className="text-sm">❌</span>
-                        <p className="text-xs text-[#82071e]">{loaderData.error}</p>
+                        <p className="text-xs text-red-600">{loaderData.error}</p>
                       </div>
                     )}
                     <button
                       onClick={handleGeolocate}
                       disabled={geoLoading}
-                      className="w-full bg-[#0969da] hover:bg-[#0550ae] text-white text-sm font-semibold py-2 px-4 rounded-md border border-[#0969da] transition-colors disabled:opacity-50"
+                      className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm disabled:opacity-50"
                     >
-                      {geoLoading ? '⏳ Detecting location...' : '📍 Use my location'}
+                      {geoLoading ? '⏳ 正在定位...' : '📍 获取我的位置'}
                     </button>
                     <button
                       onClick={() => setStep(3)}
-                      className="w-full bg-white hover:bg-[#f3f4f6] text-[#24292f] text-sm font-medium py-2 px-4 rounded-md border border-[#d0d7de] transition-colors"
+                      className="w-full text-gray-500 text-sm py-2 hover:text-rose-500 transition-colors"
                     >
-                      Skip — use default weather data
+                      跳过，使用默认天气数据 →
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-[#f6f8fa] border border-[#d0d7de] rounded-md">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-5 glass rounded-2xl">
                       <div>
-                        <p className="text-2xl font-bold text-[#24292f]">{weather.temp}°C</p>
-                        <p className="text-sm text-[#57606a]">{weather.text}</p>
+                        <p className="font-serif-cn text-4xl font-bold text-gray-800">{weather.temp}°</p>
+                        <p className="text-sm text-gray-600 mt-1">{weather.text}</p>
                         {weather.locationName && (
-                          <p className="text-xs text-[#57606a] mt-0.5">📍 {weather.locationName}</p>
+                          <p className="text-xs text-rose-400 mt-1">📍 {weather.locationName}</p>
                         )}
                       </div>
-                      <div className="text-5xl">{getWeatherEmoji(weather.icon)}</div>
+                      <div className="text-6xl drop-shadow-sm">{getWeatherEmoji(weather.icon)}</div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { label: 'Feels like', value: `${weather.feelsLike}°C` },
-                        { label: 'Humidity', value: `${weather.humidity}%` },
-                        { label: 'Wind', value: `${weather.windSpeed} m/s` },
+                        { label: '体感温度', value: `${weather.feelsLike}°C` },
+                        { label: '湿度', value: `${weather.humidity}%` },
+                        { label: '风速', value: `${weather.windSpeed} m/s` },
                       ].map((item) => (
-                        <div key={item.label} className="text-center p-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-md">
-                          <p className="text-xs text-[#57606a]">{item.label}</p>
-                          <p className="text-sm font-semibold text-[#24292f]">{item.value}</p>
+                        <div key={item.label} className="text-center p-3 glass rounded-xl">
+                          <p className="text-xs text-gray-500">{item.label}</p>
+                          <p className="text-sm font-semibold text-gray-700 mt-0.5">{item.value}</p>
                         </div>
                       ))}
                     </div>
                     <button
                       onClick={() => setStep(3)}
-                      className="w-full bg-[#1f883d] hover:bg-[#1a7f37] text-white text-sm font-semibold py-2 px-4 rounded-md border border-[#1f883d] transition-colors"
+                      className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm"
                     >
-                      Continue →
+                      继续 →
                     </button>
                   </div>
                 )}
@@ -386,11 +454,13 @@ export default function Index() {
 
         {/* Step 3 — Personal Info */}
         {step === 3 && (
-          <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-            <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-3">
-              <h2 className="font-semibold text-[#24292f] text-sm">Personal Information</h2>
+          <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in">
+            <div className="px-5 py-4 border-b border-white/30">
+              <h2 className="font-serif-cn font-semibold text-gray-700 flex items-center gap-2">
+                <span className="text-rose-400">❀</span> 个人信息
+              </h2>
             </div>
-            <Form method="post" className="p-5 space-y-4">
+            <Form method="post" className="p-5 space-y-5">
               <input type="hidden" name="lat" value={coords?.lat || ''} />
               <input type="hidden" name="lon" value={coords?.lon || ''} />
               <input type="hidden" name="weatherTemp" value={weather?.temp || '20'} />
@@ -400,51 +470,51 @@ export default function Index() {
               <input type="hidden" name="weatherWindDir" value={weather?.windDir || '东'} />
               <input type="hidden" name="weatherText" value={weather?.text || '晴'} />
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#24292f]">姓名 <span className="text-[#cf222e]">*</span></label>
-                <input type="text" name="name" placeholder="Your name" required
-                  className="w-full border border-[#d0d7de] rounded-md px-3 py-2 text-sm text-[#24292f] placeholder-[#8c959f] bg-white focus:outline-none focus:border-[#0969da] focus:ring-2 focus:ring-[#0969da33] transition-all" />
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-600">姓名 <span className="text-rose-400">*</span></label>
+                <input type="text" name="name" placeholder="请输入您的姓名" required
+                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-white/60 transition-all" />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#24292f]">生日 Birthday <span className="text-[#cf222e]">*</span></label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-600">出生日期 <span className="text-rose-400">*</span></label>
                 <input type="date" name="birthday" required
-                  className="w-full border border-[#d0d7de] rounded-md px-3 py-2 text-sm text-[#24292f] bg-white focus:outline-none focus:border-[#0969da] focus:ring-2 focus:ring-[#0969da33] transition-all" />
+                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all" />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#24292f]">性别 Gender <span className="text-[#cf222e]">*</span></label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-600">性别 <span className="text-rose-400">*</span></label>
                 <div className="flex gap-3">
                   {['男', '女'].map((g) => (
-                    <label key={g} className="flex items-center gap-2 cursor-pointer flex-1 border border-[#d0d7de] rounded-md px-3 py-2 hover:bg-[#f6f8fa] transition-colors has-[:checked]:border-[#0969da] has-[:checked]:bg-[#ddf4ff]">
-                      <input type="radio" name="gender" value={g} required className="accent-[#0969da]" />
-                      <span className="text-sm text-[#24292f] font-medium">{g === '男' ? '♂ 男 Male' : '♀ 女 Female'}</span>
+                    <label key={g} className="flex items-center gap-2 cursor-pointer flex-1 border border-rose-200/60 rounded-xl px-4 py-2.5 bg-white/60 hover:bg-rose-50/60 transition-colors has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50/80">
+                      <input type="radio" name="gender" value={g} required className="accent-rose-500" />
+                      <span className="text-sm text-gray-700 font-medium">{g === '男' ? '♂ 男' : '♀ 女'}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#24292f]">出生时辰 Birth Hour</label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-600">出生时辰</label>
                 <select name="birthHour"
-                  className="w-full border border-[#d0d7de] rounded-md px-3 py-2 text-sm text-[#24292f] bg-white focus:outline-none focus:border-[#0969da] focus:ring-2 focus:ring-[#0969da33] transition-all">
+                  className="input-elegant w-full border border-rose-200/60 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white/60 transition-all">
                   {HOUR_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.symbol} {opt.label}</option>
                   ))}
                 </select>
-                <p className="text-xs text-[#57606a]">Used for birth chart (生辰八字) calculation. Optional.</p>
+                <p className="text-xs text-gray-400">用于八字推算（可选）</p>
               </div>
 
               {actionData?.error && (
-                <div className="flex items-center gap-2 bg-[#ffebe9] border border-[#ff818266] rounded-md p-3">
+                <div className="flex items-center gap-2 bg-red-50/80 border border-red-200/60 rounded-xl p-3">
                   <span>❌</span>
-                  <p className="text-xs text-[#82071e]">{actionData.error}</p>
+                  <p className="text-xs text-red-600">{actionData.error}</p>
                 </div>
               )}
 
               <button type="submit" disabled={isSubmitting}
-                className="w-full bg-[#1f883d] hover:bg-[#1a7f37] text-white text-sm font-semibold py-2 px-4 rounded-md border border-[#1f883d] transition-colors disabled:opacity-50">
-                {isSubmitting ? '⏳ Generating your reading...' : '✦ Generate Daily Reading'}
+                className="btn-pill w-full bg-gradient-to-r from-rose-400 to-pink-400 text-white text-sm disabled:opacity-50">
+                {isSubmitting ? '✦ 正在推算运势...' : '✦ 开始今日运势'}
               </button>
             </Form>
           </div>
@@ -452,126 +522,141 @@ export default function Index() {
 
         {/* Step 4 — Results */}
         {step === 4 && actionData?.reading && (
-          <div className="space-y-4">
+          <div className="space-y-5 animate-fade-in">
+
             {/* Profile header */}
-            <div className="bg-white border border-[#d0d7de] rounded-md p-5 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-[#f6f8fa] border border-[#d0d7de] flex items-center justify-center text-3xl">
-                {getZodiacEmoji(actionData.reading.zodiac)}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-[#24292f]">{actionData.formData?.name}</p>
-                <p className="text-xs text-[#57606a]">{actionData.reading.baziSummary}</p>
-                <div className="flex gap-2 mt-1.5 flex-wrap">
-                  {[
-                    { label: actionData.reading.zodiac, color: 'bg-[#ddf4ff] text-[#0550ae] border-[#54aeff66]' },
-                    { label: `${actionData.reading.element} Element`, color: 'bg-[#dafbe1] text-[#116329] border-[#4ac26b66]' },
-                    { label: actionData.reading.yinYang, color: 'bg-[#fff8c5] text-[#633c01] border-[#d4a72c66]' },
-                  ].map((tag) => (
-                    <span key={tag.label} className={`text-xs px-2 py-0.5 rounded-full border font-medium ${tag.color}`}>{tag.label}</span>
-                  ))}
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
+              <div className="bg-gradient-to-r from-rose-400/20 to-pink-300/20 px-5 py-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-white/70 border-2 border-white shadow-md flex items-center justify-center text-3xl">
+                    {getZodiacEmoji(actionData.reading.zodiac)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-serif-cn font-bold text-lg text-gray-800">{actionData.formData?.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{actionData.reading.baziSummary}</p>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {[
+                        { label: actionData.reading.zodiac, color: 'bg-rose-100/80 text-rose-600 border-rose-200/60' },
+                        { label: `${actionData.reading.element}`, color: 'bg-emerald-100/80 text-emerald-600 border-emerald-200/60' },
+                        { label: actionData.reading.yinYang, color: 'bg-amber-100/80 text-amber-600 border-amber-200/60' },
+                      ].map((tag) => (
+                        <span key={tag.label} className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${tag.color}`}>{tag.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-serif-cn text-3xl font-bold text-rose-500">{actionData.reading.dayRating}<span className="text-sm text-gray-400">/5</span></p>
+                    <div className="text-base mt-0.5">{ratingStars(actionData.reading.dayRating)}</div>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-[#24292f]">{actionData.reading.dayRating}<span className="text-sm text-[#57606a]">/5</span></p>
-                <div className="text-sm">{ratingStars(actionData.reading.dayRating)}</div>
               </div>
             </div>
 
             {/* Day summary */}
-            <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-              <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-2">
-                <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">Today's Summary</h3>
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay">
+              <div className="px-5 py-3 border-b border-white/30">
+                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日概览</h3>
               </div>
-              <p className="px-4 py-3 text-sm text-[#24292f] leading-relaxed">{actionData.reading.daySummary}</p>
+              <p className="px-5 py-4 text-sm text-gray-700 leading-relaxed">{actionData.reading.daySummary}</p>
             </div>
 
+            <div className="divider-flower" />
+
             {/* Lucky colors */}
-            <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-              <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-2">
-                <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">Lucky Colors</h3>
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay">
+              <div className="px-5 py-3 border-b border-white/30">
+                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 幸运色彩</h3>
               </div>
-              <div className="p-4 space-y-3">
-                <div className="flex gap-3">
+              <div className="p-5 space-y-4">
+                <div className="flex justify-center gap-6">
                   {actionData.reading.luckyColors.map((color, i) => (
-                    <div key={i} className="flex items-center gap-2 flex-1 border border-[#d0d7de] rounded-md p-2">
-                      <div className="w-8 h-8 rounded-md flex-shrink-0 border border-[#d0d7de]" style={{ backgroundColor: color.hex }} />
-                      <div>
-                        <p className="text-xs font-semibold text-[#24292f]">{color.name}</p>
-                        <p className="text-xs text-[#57606a] font-mono">{color.hex}</p>
-                      </div>
+                    <div key={i} className="text-center space-y-2">
+                      <div
+                        className="w-14 h-14 rounded-full mx-auto border-2 border-white shadow-lg"
+                        style={{ backgroundColor: color.hex, boxShadow: `0 0 16px 2px ${color.hex}40` }}
+                      />
+                      <p className="text-xs font-semibold text-gray-700">{color.name}</p>
+                      <p className="text-xs text-gray-400">{color.hex}</p>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-start gap-2 bg-[#ddf4ff] border border-[#54aeff66] rounded-md p-3">
+                <div className="bg-rose-50/60 border border-rose-200/40 rounded-xl p-3 flex items-start gap-2">
                   <span className="text-sm">💡</span>
-                  <p className="text-xs text-[#0550ae]"><span className="font-semibold">{actionData.reading.luckyColor.name}:</span> {actionData.reading.luckyColor.reason}</p>
+                  <p className="text-xs text-rose-600"><span className="font-semibold">{actionData.reading.luckyColor.name}：</span>{actionData.reading.luckyColor.reason}</p>
                 </div>
               </div>
             </div>
 
+            <div className="divider-flower" />
+
             {/* Foods */}
-            <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-              <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-2">
-                <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">Recommended Foods 今日宜吃</h3>
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay-2">
+              <div className="px-5 py-3 border-b border-white/30">
+                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日宜吃</h3>
               </div>
-              <div className="divide-y divide-[#d0d7de]">
+              <div className="p-4 space-y-2">
                 {actionData.reading.foods.map((food, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-xl w-8 text-center">{food.emoji}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-[#24292f]">{food.name}</p>
-                      <p className="text-xs text-[#57606a]">{food.reason}</p>
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50/40 transition-colors">
+                    <span className="text-2xl w-10 text-center">{food.emoji}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-700">{food.name}</p>
+                      <p className="text-xs text-gray-500">{food.reason}</p>
                     </div>
-                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-[#dafbe1] text-[#116329] border border-[#4ac26b66]">✓ Recommended</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100/80 text-emerald-600 font-medium">宜</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Avoid foods */}
-            <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
-              <div className="border-b border-[#d0d7de] bg-[#f6f8fa] px-4 py-2">
-                <h3 className="text-xs font-semibold text-[#57606a] uppercase tracking-wide">Foods to Avoid 今日忌吃</h3>
+            <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30">
+              <div className="px-5 py-3 border-b border-white/30">
+                <h3 className="text-xs font-semibold text-rose-400 tracking-widest">✦ 今日忌吃</h3>
               </div>
-              <div className="divide-y divide-[#d0d7de]">
+              <div className="p-4 space-y-2">
                 {actionData.reading.avoidFoods.map((food, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-xl w-8 text-center">{food.emoji}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-[#24292f]">{food.name}</p>
-                      <p className="text-xs text-[#57606a]">{food.reason}</p>
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50/30 transition-colors">
+                    <span className="text-2xl w-10 text-center">{food.emoji}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-700">{food.name}</p>
+                      <p className="text-xs text-gray-500">{food.reason}</p>
                     </div>
-                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-[#ffebe9] text-[#82071e] border border-[#ff818266]">✕ Avoid</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-red-100/80 text-red-500 font-medium">忌</span>
                   </div>
                 ))}
               </div>
             </div>
 
+            <div className="divider-flower" />
+
             {/* Lucky number & direction */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border border-[#d0d7de] rounded-md p-4 text-center">
-                <p className="text-xs text-[#57606a] uppercase tracking-wide mb-1">Lucky Number</p>
-                <p className="text-4xl font-bold text-[#0969da]">{actionData.reading.luckyNumber}</p>
+              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-rose-100/30">
+                <p className="text-xs text-gray-500 mb-2">幸运数字</p>
+                <p className="font-serif-cn text-4xl font-bold text-rose-500">{actionData.reading.luckyNumber}</p>
               </div>
-              <div className="bg-white border border-[#d0d7de] rounded-md p-4 text-center">
-                <p className="text-xs text-[#57606a] uppercase tracking-wide mb-1">Lucky Direction</p>
-                <p className="text-4xl font-bold text-[#0969da]">{actionData.reading.luckyDirection}</p>
+              <div className="glass-strong rounded-2xl p-5 text-center shadow-lg shadow-rose-100/30">
+                <p className="text-xs text-gray-500 mb-2">幸运方位</p>
+                <p className="font-serif-cn text-4xl font-bold text-rose-500">{actionData.reading.luckyDirection}</p>
               </div>
             </div>
 
             <button
               onClick={() => { setStep(1); window.scrollTo(0, 0); }}
-              className="w-full bg-white hover:bg-[#f3f4f6] text-[#24292f] text-sm font-semibold py-2 px-4 rounded-md border border-[#d0d7de] transition-colors"
+              className="w-full glass rounded-full py-3 text-gray-600 text-sm font-medium hover:bg-white/80 transition-all"
             >
-              ↺ Start over
+              ↺ 重新开始
             </button>
           </div>
         )}
       </main>
 
-      <footer className="text-center py-8 text-[#57606a] text-xs border-t border-[#d0d7de] mt-8">
-        <p>Art of Living · For entertainment purposes only</p>
-        <p className="mt-1 text-[#8c959f]">Powered by Five Elements Theory &amp; QWeather</p>
+      <footer className="relative z-10 text-center py-8 text-xs mt-8">
+        <div className="flex items-center justify-center gap-2 text-rose-300 text-xs mb-3">
+          <span>❀</span><span className="tracking-widest">· · ·</span><span>❀</span>
+        </div>
+        <p className="text-gray-500">新黄历 · 仅供娱乐参考</p>
+        <p className="mt-1 text-gray-400">五行理论 & 和风天气 驱动</p>
       </footer>
     </div>
   );
