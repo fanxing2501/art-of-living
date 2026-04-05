@@ -1,87 +1,68 @@
-# Welcome to React Router!
+# 新黄历 (Xin HuangLi)
 
-A modern, production-ready template for building full-stack React applications using React Router.
+## 项目介绍
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+新黄历是一款基于 React Router v7 (Remix) 构建的现代中式黄历应用，融合传统中国历法智慧与现代气象数据，为用户提供个性化的每日运势、幸运颜色和饮食建议。
 
-## Features
+## 技术栈
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+- **框架**: React Router v7 (基于 Remix 架构，含 SSR)
+- **语言**: TypeScript
+- **样式**: Tailwind CSS v4
+- **构建工具**: Vite 6
+- **天气数据**: 和风天气 (QWeather) API
 
-## Getting Started
+## 功能特色
 
-### Installation
+- 🌍 **地理定位**: 自动获取用户位置，查询当地实时天气
+- 🌤️ **天气集成**: 接入和风天气 API，获取温度、湿度、风向等数据
+- 🔮 **生辰八字**: 根据生日和出生时辰计算天干地支
+- 🐉 **五行理论**: 结合五行（木火土金水）生成个性化建议
+- 🎨 **幸运色彩**: 每日幸运颜色推荐，附色值
+- 🍽️ **饮食宜忌**: 基于五行、天气、季节的个性化饮食建议
+- ⭐ **综合评分**: 今日运势评分与小结
 
-Install the dependencies:
+## 如何获取和风天气 API Key
+
+1. 访问 [和风天气开发者平台](https://dev.qweather.com/)
+2. 注册账号并登录
+3. 创建一个新应用，选择「免费订阅」
+4. 在应用详情页获取 API Key
+5. 免费版支持每日 1000 次调用，足够个人使用
+
+## 本地运行步骤
 
 ```bash
+# 1. 安装依赖
 npm install
-```
 
-### Development
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，填入您的和风天气 API Key
 
-Start the development server with HMR:
-
-```bash
+# 3. 启动开发服务器
 npm run dev
+
+# 4. 访问
+# 打开浏览器访问 http://localhost:5173
 ```
 
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
+## 构建生产版本
 
 ```bash
 npm run build
+npm run start
 ```
 
-## Deployment
+## 环境变量
 
-### Docker Deployment
+| 变量名 | 说明 | 必填 |
+|--------|------|------|
+| QWEATHER_KEY | 和风天气 API Key | 是 |
 
-To build and run using Docker:
+## 注意事项
 
-```bash
-docker build -t my-app .
+- 本应用仅供娱乐参考，请勿迷信
+- 天气数据需要有效的和风天气 API Key
+- 地理定位功能需要浏览器授权
 
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
