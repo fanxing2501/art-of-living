@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 import { useState, useEffect } from "react";
 import { generateDailyReading, type DailyReading } from "~/utils/lucky";
@@ -57,12 +57,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const lon = url.searchParams.get('lon');
 
   if (!lat || !lon) {
-    return json<LoaderData>({ weather: null, error: null, lat: null, lon: null });
+    return { weather: null, error: null, lat: null, lon: null };
   }
 
   const apiKey = process.env.QWEATHER_KEY;
   if (!apiKey || apiKey === 'demo_key') {
-    return json<LoaderData>({ weather: null, error: '未配置天气API密钥', lat, lon });
+    return { weather: null, error: '未配置天气API密钥', lat, lon };
   }
 
   try {
@@ -75,7 +75,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const geoJson = await geoRes.json() as Record<string, unknown>;
 
     if ((weatherJson as { code?: string }).code !== '200') {
-      return json<LoaderData>({ weather: null, error: `天气API错误: ${(weatherJson as { code?: string }).code}`, lat, lon });
+      return { weather: null, error: `天气API错误: ${(weatherJson as { code?: string }).code}`, lat, lon };
     }
 
     const now = (weatherJson as { now: WeatherData }).now;
@@ -93,9 +93,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       locationName: locationName ?? undefined,
     };
 
-    return json<LoaderData>({ weather, error: null, lat, lon });
+    return { weather, error: null, lat, lon };
   } catch {
-    return json<LoaderData>({ weather: null, error: '获取天气失败，请检查网络', lat, lon });
+    return { weather: null, error: '获取天气失败，请检查网络', lat, lon };
   }
 }
 
@@ -113,7 +113,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const weatherText = formData.get('weatherText') as string || '晴';
 
   if (!name || !birthday || !gender) {
-    return json<ActionData>({ reading: null, error: '请填写完整信息', formData: null });
+    return { reading: null, error: '请填写完整信息', formData: null };
   }
 
   const [birthYear, birthMonth, birthDay] = birthday.split('-').map(Number);
@@ -137,11 +137,11 @@ export async function action({ request }: ActionFunctionArgs) {
     currentHour: today.getHours(),
   });
 
-  return json<ActionData>({
+  return {
     reading,
     error: null,
     formData: { name, birthday, gender, birthHour: String(birthHour) },
-  });
+  };
 }
 
 function getLunarDateText(): string {
