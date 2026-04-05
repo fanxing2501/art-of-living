@@ -709,7 +709,7 @@ export default function Index() {
                     {/* Song recommendation — APlayer + MetingJS */}
                     <div className="mt-3">
                       <p className="text-xs text-amber-600 mb-2 flex items-center gap-1.5">
-                        <span>🎵</span> 今日适宜听
+                        <span>🎵</span> 今日适宜听 · {fortune.song.title} — {fortune.song.artist}
                       </p>
                       <div className="rounded-xl overflow-hidden" dangerouslySetInnerHTML={{
                         __html: `<meting-js server="netease" type="song" id="${fortune.song.songId}" mini="true" autoplay="false" preload="none"></meting-js>`
