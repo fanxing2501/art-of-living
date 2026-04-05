@@ -706,28 +706,19 @@ export default function Index() {
                       </div>
                     </div>
 
-                    {/* Song recommendation */}
-                    <div className="mt-3 bg-violet-50/60 border border-violet-200/40 rounded-xl p-3 flex items-center gap-3">
-                      <span className="text-lg">🎵</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-violet-500 mb-0.5">今日适宜听</p>
-                        <a
-                          href={fortune.song.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-violet-700 hover:text-violet-900 underline decoration-violet-300 underline-offset-2 truncate block"
-                        >
-                          {fortune.song.title} — {fortune.song.artist}
-                        </a>
+                    {/* Song recommendation — 网易云音乐嵌入播放器 */}
+                    <div className="mt-3">
+                      <p className="text-xs text-amber-600 mb-2 flex items-center gap-1.5">
+                        <span>🎵</span> 今日适宜听 · {fortune.song.title} — {fortune.song.artist}
+                      </p>
+                      <div className="rounded-xl overflow-hidden">
+                        <iframe
+                          frameBorder="0"
+                          width="100%"
+                          height="86"
+                          src={`https://music.163.com/outchain/player?type=2&id=${fortune.song.songId}&auto=0&height=66`}
+                        />
                       </div>
-                      <a
-                        href={fortune.song.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-violet-100 text-violet-600 border border-violet-200/60 hover:bg-violet-200 transition-colors"
-                      >
-                        去听听 →
-                      </a>
                     </div>
                   </div>
                 </div>
