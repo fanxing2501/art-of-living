@@ -96,23 +96,29 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    const weatherRes = await fetch(`https://pc38kyxume.re.qweatherapi.com/v7/weather/now?location=${lon},${lat}&key=${apiKey}&lang=zh`);
-    const weatherJson = await weatherRes.json() as Record<string, unknown>;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
+    // 并行请求天气和城市名
+    const [weatherRes, geoRes] = await Promise.all([
+      fetch(`https://pc38kyxume.re.qweatherapi.com/v7/weather/now?location=${lon},${lat}&key=${apiKey}&lang=zh`, { signal: controller.signal }),
+      fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon},${lat}&key=${apiKey}&lang=zh`, { signal: controller.signal }).catch(() => null),
+    ]);
+    clearTimeout(timeout);
+
+    const weatherJson = await weatherRes.json() as Record<string, unknown>;
     if ((weatherJson as { code?: string }).code !== '200') {
       return { weather: null, error: `天气API错误: ${(weatherJson as { code?: string }).code}`, lat, lon };
     }
 
     const now = (weatherJson as { now: WeatherData }).now;
-    // 用坐标反推城市名（忽略失败）
     let locationName: string | null = null;
-    try {
-      const geoRes = await fetch(`https://geoapi.qweather.com/v2/city/lookup?location=${lon},${lat}&key=${apiKey}&lang=zh`);
-      if (geoRes.ok) {
+    if (geoRes?.ok) {
+      try {
         const geoJson = await geoRes.json() as Record<string, unknown>;
         locationName = (geoJson as { location?: Array<{ name: string }> }).location?.[0]?.name ?? null;
-      }
-    } catch { /* 城市名获取失败不影响主流程 */ }
+      } catch { /* ignore */ }
+    }
 
     const weather: WeatherData = {
       temp: now.temp,
