@@ -647,6 +647,69 @@ export default function Index() {
 
             <div className="divider-flower" />
 
+            {/* Fortune categories */}
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="font-serif-cn text-lg font-bold text-gray-700">✦ 分类运势详解 ✦</h3>
+                <p className="text-xs text-gray-400 mt-1">基于五行八字与天象推算</p>
+              </div>
+              {actionData.reading.fortunes.map((fortune, i) => (
+                <div
+                  key={fortune.name}
+                  className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in"
+                  style={{ animationDelay: `${i * 120}ms` }}
+                >
+                  <div className="px-5 py-4">
+                    {/* Header row: emoji + name + stars */}
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-serif-cn font-bold text-gray-800 flex items-center gap-2">
+                        <span className="text-xl">{fortune.emoji}</span>
+                        {fortune.name}
+                      </h4>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{ratingStars(fortune.rating)}</span>
+                        <span className="text-xs text-gray-400 font-medium">{fortune.rating}/5</span>
+                      </div>
+                    </div>
+
+                    {/* Keyword badge */}
+                    <div className="mb-3">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100/80 text-rose-500 border border-rose-200/60 font-medium">
+                        关键词：{fortune.keyword}
+                      </span>
+                    </div>
+
+                    {/* Summary */}
+                    <p className="text-sm text-gray-700 leading-relaxed mb-3">{fortune.summary}</p>
+
+                    {/* Advice box */}
+                    <div className="bg-rose-50/60 border border-rose-200/40 rounded-xl p-3 flex items-start gap-2 mb-3">
+                      <span className="text-sm">💡</span>
+                      <p className="text-xs text-rose-600">{fortune.advice}</p>
+                    </div>
+
+                    {/* 宜/忌 badges */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-emerald-600 font-semibold shrink-0">✓ 宜</span>
+                        {fortune.goodFor.map((item) => (
+                          <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-emerald-50/80 text-emerald-600 border border-emerald-200/60">{item}</span>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-red-500 font-semibold shrink-0">✗ 忌</span>
+                        {fortune.badFor.map((item) => (
+                          <span key={item} className="text-xs px-2 py-0.5 rounded-full bg-red-50/80 text-red-500 border border-red-200/60">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="divider-flower" />
+
             {/* Lucky colors */}
             <div className="glass-strong rounded-2xl overflow-hidden shadow-lg shadow-rose-100/30 animate-fade-in-delay">
               <div className="px-5 py-3 border-b border-white/30">
