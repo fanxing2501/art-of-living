@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
-import { useState, useEffect } from "react";
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { useState, useEffect, useRef } from "react";
 import { generateDailyReading, type DailyReading } from "~/utils/lucky";
 
 interface WeatherData {
@@ -184,6 +184,15 @@ const HOUR_OPTIONS = [
   { value: 21, label: '亥时 (21:00-23:00)', symbol: '🐷' },
 ];
 
+const STORAGE_KEY = 'huaxin_user';
+
+interface SavedUser {
+  name: string;
+  birthday: string;
+  gender: string;
+  birthHour: string;
+}
+
 function getZodiacEmoji(zodiac: string): string {
   const map: Record<string, string> = {
     '鼠': '🐭', '牛': '🐄', '虎': '🐯', '兔': '🐰', '龙': '🐲', '蛇': '🐍',
@@ -248,16 +257,86 @@ export default function Index() {
   const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const submit = useSubmit();
   const isSubmitting = navigation.state === 'submitting';
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [savedUser, setSavedUser] = useState<SavedUser | null>(null);
+  const [autoSubmitting, setAutoSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // On mount: check localStorage for saved user
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as SavedUser;
+        if (parsed.name && parsed.birthday && parsed.gender) {
+          setSavedUser(parsed);
+          setAutoSubmitting(true);
+          // If no coords in URL, auto-detect geolocation
+          if (!loaderData.lat || !loaderData.lon) {
+            if (navigator.geolocation) {
+              setGeoLoading(true);
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const { latitude, longitude } = pos.coords;
+                  setGeoLoading(false);
+                  window.location.href = `/?lat=${latitude}&lon=${longitude}`;
+                },
+                () => {
+                  // Geo failed — fall back to normal flow
+                  setAutoSubmitting(false);
+                  setGeoLoading(false);
+                }
+              );
+            } else {
+              setAutoSubmitting(false);
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-submit when weather is ready + savedUser exists + autoSubmitting
+  useEffect(() => {
+    if (autoSubmitting && savedUser && loaderData.weather && !actionData?.reading && navigation.state === 'idle') {
+      const formData = new FormData();
+      formData.set('name', savedUser.name);
+      formData.set('birthday', savedUser.birthday);
+      formData.set('gender', savedUser.gender);
+      formData.set('birthHour', savedUser.birthHour);
+      formData.set('weatherTemp', loaderData.weather.temp || '20');
+      formData.set('weatherCode', loaderData.weather.icon || '100');
+      formData.set('weatherHumidity', loaderData.weather.humidity || '60');
+      formData.set('weatherWindSpeed', loaderData.weather.windSpeed || '3');
+      formData.set('weatherWindDir', loaderData.weather.windDir || '东');
+      formData.set('weatherText', loaderData.weather.text || '晴');
+      submit(formData, { method: 'post' });
+    }
+  }, [autoSubmitting, savedUser, loaderData.weather, actionData?.reading, navigation.state, submit]);
 
   useEffect(() => {
     if (actionData?.reading) {
+      setAutoSubmitting(false);
       setStep(4);
+    }
+  }, [actionData]);
+
+  // Save user data to localStorage on successful form submission
+  useEffect(() => {
+    if (actionData?.reading && actionData?.formData) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(actionData.formData));
+      } catch {
+        // Ignore storage errors
+      }
     }
   }, [actionData]);
 
@@ -266,6 +345,14 @@ export default function Index() {
       setCoords({ lat: parseFloat(loaderData.lat), lon: parseFloat(loaderData.lon) });
     }
   }, [loaderData]);
+
+  const handleClearUser = () => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    setSavedUser(null);
+    setAutoSubmitting(false);
+    setStep(1);
+    window.scrollTo(0, 0);
+  };
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) {
@@ -303,16 +390,41 @@ export default function Index() {
         style={{ backgroundImage: `url(${bg.imageUrl})` }}
       />
 
+      {/* Auto-submit loading screen */}
+      {autoSubmitting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="text-center space-y-4 animate-fade-in">
+            <div className="text-5xl animate-pulse">{getSeasonEmoji()}</div>
+            <p className="font-serif-cn text-lg text-rose-500 tracking-wide">花信正在为您准备今日运势...</p>
+            <div className="flex items-center justify-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-rose-300 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Frosted glass header */}
       <header className="glass-header sticky top-0 z-50 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{getSeasonEmoji()}</span>
-            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">新黄历</h1>
+            <h1 className="font-serif-cn text-xl font-bold text-rose-600 tracking-wide">花信</h1>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
-            <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
+          <div className="flex items-center gap-3">
+            {savedUser && (
+              <button
+                onClick={handleClearUser}
+                className="text-xs text-rose-400 hover:text-rose-600 transition-colors px-2 py-1 rounded-full border border-rose-200/60 bg-white/40 hover:bg-white/70"
+              >
+                修改信息
+              </button>
+            )}
+            <div className="text-right">
+              <p className="text-xs text-gray-600 font-medium">{getGregorianDateText()}</p>
+              <p className="text-xs text-rose-400 font-serif-cn">{getLunarDateText()}</p>
+            </div>
           </div>
         </div>
       </header>
@@ -340,9 +452,9 @@ export default function Index() {
           <div className="animate-fade-in text-center py-8 space-y-8">
             <div className="space-y-4">
               <h2 className="font-serif-cn text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">
-                新黄历
+                花信
               </h2>
-              <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Art of Living</p>
+              <p className="font-serif-cn text-lg text-rose-500 tracking-widest">Bloom Signal</p>
               <div className="flex items-center justify-center gap-2 text-rose-300 text-sm">
                 <span>✿</span><span>✿</span><span>✿</span>
               </div>
@@ -460,7 +572,7 @@ export default function Index() {
                 <span className="text-rose-400">❀</span> 个人信息
               </h2>
             </div>
-            <Form method="post" className="p-5 space-y-5">
+            <Form method="post" ref={formRef} className="p-5 space-y-5">
               <input type="hidden" name="lat" value={coords?.lat || ''} />
               <input type="hidden" name="lon" value={coords?.lon || ''} />
               <input type="hidden" name="weatherTemp" value={weather?.temp || '20'} />
@@ -647,6 +759,14 @@ export default function Index() {
             >
               ↺ 重新开始
             </button>
+            {savedUser && (
+              <button
+                onClick={handleClearUser}
+                className="w-full glass rounded-full py-3 text-rose-500 text-sm font-medium hover:bg-white/80 transition-all"
+              >
+                切换用户 / 修改信息
+              </button>
+            )}
           </div>
         )}
       </main>
@@ -655,7 +775,7 @@ export default function Index() {
         <div className="flex items-center justify-center gap-2 text-rose-300 text-xs mb-3">
           <span>❀</span><span className="tracking-widest">· · ·</span><span>❀</span>
         </div>
-        <p className="text-gray-500">新黄历 · 仅供娱乐参考</p>
+        <p className="text-gray-500">花信 · 仅供娱乐参考</p>
         <p className="mt-1 text-gray-400">五行理论 & 和风天气 驱动</p>
       </footer>
     </div>
